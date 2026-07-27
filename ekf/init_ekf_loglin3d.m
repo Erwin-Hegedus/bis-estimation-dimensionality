@@ -11,7 +11,7 @@ function state = init_ekf_loglin3d(cfg)
     state.P_max = [1.0, 0.5, 0.1];
     
     % FIM for identifiability
-    state.FIM = eye(3) * 0.01;
+    state.FIM = zeros(3, 3);
     state.FIM_forgetting = 0.995;
     state.ident_eigenvalue_ratio = 0.01;
     state.FIM_condition = Inf;
@@ -25,8 +25,8 @@ function state = init_ekf_loglin3d(cfg)
     state.eps_P = 0.05;
     state.eps_R = 0.0001;
     
-    state.R_base = 400;
-    state.R_diseq = 15;
+    state.R_base = cfg.R_base;
+    state.R_diseq = cfg.R_disequilibrium_factor;
     
     state.param_hist = [];
     state.P_hist = [];

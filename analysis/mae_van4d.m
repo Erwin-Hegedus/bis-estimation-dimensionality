@@ -18,7 +18,7 @@ function [mae, sse] = mae_van4d(theta, CeP, CeR, E0, BISmin, bis_obs)
         if isnan(CeP(k)) || isnan(CeR(k)) || isnan(bis_obs(k))
             continue;
         end
-        bis_pred(k) = predict_bis_with_endpoints(theta(:), CeP(k), CeR(k), E0, BISmin, 'vanluchene');
+        bis_pred(k) = predict_bis_4d(theta(:), CeP(k), CeR(k), E0, BISmin, 'vanluchene');
     end
 
     diff_val = bis_obs - bis_pred;

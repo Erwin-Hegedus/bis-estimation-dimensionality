@@ -6,8 +6,10 @@ function processor = update_E0_and_BISmin(processor, params, CeP, CeR, y_eff, da
 
     diseq_P = CpP - CeP;
     diseq_R = CpR - CeR;
-    dBIS_dCeP = compute_dBIS_dCe(params, CeP, CeR, processor.ekf_van.model, 'propofol');
-    dBIS_dCeR = compute_dBIS_dCe(params, CeP, CeR, processor.ekf_van.model, 'remi');
+    dBIS_dCeP = compute_dBIS_dCe(params, CeP, CeR, processor.ekf_van.model, 'propofol', ...
+        processor.cfg.E0_fixed, processor.cfg.BISmin_fixed);
+    dBIS_dCeR = compute_dBIS_dCe(params, CeP, CeR, processor.ekf_van.model, 'remi', ...
+        processor.cfg.E0_fixed, processor.cfg.BISmin_fixed);
     sigma2_model = (dBIS_dCeP * diseq_P)^2 + (dBIS_dCeR * diseq_R)^2;
 
     R = 50 + sigma2_model;

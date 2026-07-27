@@ -7,7 +7,7 @@ function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, B
     
     % Prediction
     xP = log(CeP + state.eps_P);
-    xR = log(CeR + state.eps_R);
+    xR = log(CeR * 1000 + state.eps_R);
     
     Z = a0 + aP * xP + aR * xR;
     Z = max(-8, min(8, Z));
@@ -65,11 +65,7 @@ function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, B
     
     % === EKF UPDATE ===
     innovation = bis_obs - bis_pred;
-    
-    if abs(innovation) < 0.5
-        return;
-    end
-    
+
     P_pred = state.P + diag(diag(state.Q));
     S = H_jac * P_pred * H_jac' + R;
     

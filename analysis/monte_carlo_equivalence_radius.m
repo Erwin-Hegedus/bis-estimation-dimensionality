@@ -33,18 +33,23 @@ function eq_info = monte_carlo_equivalence_radius(results, pid, cfg)
     lb = cfg.lb(:);
     ub = cfg.ub(:);
 
-    theta_good = [];
-    radius_good = [];
+    rng(42);
+    theta_good  = nan(4, Nsamples);
+    radius_good = nan(1, Nsamples);
+    cnt = 0;
 
     for ii = 1:Nsamples
         theta_rand = lb + (ub - lb) .* rand(4,1);
         [mae_i, ~] = mae_van4d(theta_rand, CeP, CeR, E0, BISmin, bis_obs);
 
         if mae_i <= mae_ref * tol_factor
-            theta_good(:, end+1) = theta_rand;
-            radius_good(end+1)   = norm(theta_rand - theta_ref, 2);
+            cnt = cnt + 1;
+            theta_good(:, cnt) = theta_rand;
+            radius_good(cnt)   = norm(theta_rand - theta_ref, 2);
         end
     end
+    theta_good  = theta_good(:, 1:cnt);
+    radius_good = radius_good(1:cnt);
 
     if isempty(theta_good)
         eq_info.has_eq      = false;
@@ -53,6 +58,7 @@ function eq_info = monte_carlo_equivalence_radius(results, pid, cfg)
         eq_info.radius_max  = 0;
         eq_info.radius_mean = 0;
         eq_info.N_eq        = 0;
+        eq_info.N_total     = Nsamples;
         return;
     end
 
@@ -64,4 +70,5 @@ function eq_info = monte_carlo_equivalence_radius(results, pid, cfg)
     eq_info.radius_max  = max(radius_good);
     eq_info.radius_mean = mean(radius_good);
     eq_info.N_eq        = numel(radius_good);
+    eq_info.N_total     = Nsamples;
 end

@@ -15,7 +15,7 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     
     % --- 2. CREATE FIGURE ---
     fig = figure('Name', 'Figure 7: Combined Identifiability', 'Color', 'w', ...
-        'Position', [50 50 1200 900]); % Nagyobb méret a 2x2-höz
+        'Position', [50 50 1200 900]);
 
     % =====================================================================
     % PANEL A: COHORT FIM EVOLUTION (WITH PATIENT HIGHLIGHT)
@@ -114,7 +114,7 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     k_range = linspace(0.2, 3.0, 100);
     sse_1d = zeros(size(k_range));
     for i = 1:length(k_range)
-        bis_pred = predict_bis_proof_internal(k_range(i), k_range(i), CeP_ref, CeR_ref, E0_ref, cfg);
+        bis_pred = predict_bis_2d_model(k_range(i), k_range(i), CeP_ref, CeR_ref, E0_ref, cfg.BISmin_fixed, cfg);
         sse_1d(i) = (bis_pred - BIS_meas)^2;
     end
     
@@ -141,7 +141,7 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     
     for i = 1:size(KP,1)
         for j = 1:size(KP,2)
-            bis_pred = predict_bis_proof_internal(KP(i,j), KR(i,j), CeP_ref, CeR_ref, E0_ref, cfg);
+            bis_pred = predict_bis_2d_model(KP(i,j), KR(i,j), CeP_ref, CeR_ref, E0_ref, cfg.BISmin_fixed, cfg);
             sse_2d(i,j) = (bis_pred - BIS_meas)^2;
         end
     end

@@ -17,6 +17,8 @@ if ~exist(DATA_FILE, 'file'); error('Data file %s not found.', DATA_FILE); end
 cfg.ke0P = 0.456;  % Schnider population (DO NOT inflate)
 cfg.ke0R = 0.595;  % Minto population
 cfg.BISmin_fixed = 30;
+cfg.E0_fixed = 93;
+cfg.bis_delay = 25;  % samples at 1 Hz, BIS monitor smoothing lag
 
 % Gate settings
 cfg.gate = struct('window',60,'forget',0.98,'temperature',2.0,'min_weight',0.00);
@@ -55,8 +57,7 @@ cfg.pk.remi = struct('V1',5.1,'V2',9.82,'V3',5.42,'CL',2.6,'Q2',2.05,'Q3',0.076,
 
 cfg.target_band = [40,60];
 cfg.min_Ce_for_learning = 0.1;
-cfg.online = struct('initialization_samples',10,'delay_update_interval',30, ...
-    'history_buffer_size',400,'population_delay_init',70,'min_delay',20,'max_delay',180);
+cfg.online = struct('initialization_samples',10);
 cfg.artifact = struct('bis_min',0,'bis_max',100,'bis_jump_thresh',25,'bis_rate_thresh',15);
 cfg.e0 = struct('q', 0.02, 'P0', 4.0, 'R', 50, 'min', 70, 'max', 100);
 cfg.bismin = struct('q', 0.02, 'P0', 64.0, 'R', 50, 'init', 10, 'min', 10, 'max', 50);
@@ -77,14 +78,19 @@ fprintf('Models: 0D (Pop), 1D (k_scale), 2D (kP,kR), 3D (LogLin), 4D (Vanluchene
 results_dir = 'results';
 if ~exist(results_dir, 'dir'), mkdir(results_dir); end
 
-N = get_patient_count_auto(DATA_FILE);
-results = init_results_struct_v3(N);
+N = get_patient_count(DATA_FILE);
+results = init_results_struct(N);
 
-for i = 1:min(300, N)
-    pid = i; 
-    fprintf('\nPatient %3d (%2d/%2d): ', pid, i, N);
+cohort = readmatrix(fullfile('reproduce', 'cohort_caseids.csv'));
+cohort = cohort(:, 1);
+fprintf('Cohort: %d cases from reproduce/cohort_caseids.csv\n', numel(cohort));
+
+for c = 1:numel(cohort)
+    i = cohort(c);
+    pid = i;
+    fprintf('\nPatient %3d (%2d/%2d): ', pid, c, numel(cohort));
     try
-        [bis, remi_rate, prop_rate, time] = getVitalDBPatientData_auto_rates_fixed(pid, DATA_FILE);
+        [bis, remi_rate, prop_rate, time] = load_patient_record(pid, DATA_FILE);
         n = min([numel(bis), numel(remi_rate), numel(prop_rate), numel(time)]);
 
         if n < 900
@@ -100,17 +106,16 @@ for i = 1:min(300, N)
         demo = get_patient_demo_from_mat(pid, DATA_FILE);
         [pk_prop, pk_remi] = pk_from_demographics_schnider_minto(demo, cfg);
         [prop_rate, remi_rate, bis, time, shift_val, n, sync_msg] = ...
-            synchronize_induction_phase_Ce_bootstrap( ...
+            align_bis_to_infusion( ...
             bis, prop_rate_raw, remi_rate_raw, time, 0.3 / 60 );
 
         fprintf('  -> Ce bootstrap alignment: %s (Shift %.1fs, n=%d)\n', ...
             sync_msg, shift_val, n);
-        processor = init_online_processor_rigorous(cfg, time(1), pk_prop, pk_remi, demo);
+        processor = init_processor(cfg, time(1), pk_prop, pk_remi, demo);
 
         pred_van = nan(n,1); pred_gre = nan(n,1); pred_pop = nan(n,1);
         pred_kscale = nan(n,1);
         pred_loglin = nan(n,1);
-        pred_2d = nan(n,1);  
         Xhist_van = nan(4,n); Xhist_gre = nan(4,n);
         Xhist_loglin = nan(3,n);
         RSE_van = nan(4,n); RSE_gre = nan(4,n);
@@ -122,34 +127,29 @@ for i = 1:min(300, N)
         BISmin_trajectory = nan(n,1);
         E0_trajectory = nan(n,1);
         k_trajectory = nan(n,1);
-        kP_trajectory = nan(n,1);
-        kR_trajectory = nan(n,1);
         pred_2d_fim = nan(n,1);
         kP_fim_trajectory = nan(n,1);
         kR_fim_trajectory = nan(n,1);
 
         
         for k = 1:n
-            [pred_van(k), pred_gre(k), pred_kscale(k), pred_loglin(k), pred_2d(k), pred_2d_fim(k), processor] = process_online_sample_rigorous( ...
+            [pred_van(k), pred_gre(k), pred_kscale(k), pred_loglin(k), pred_2d_fim(k), processor] = process_sample( ...
                 processor, time(k), bis(k), prop_rate(k), remi_rate(k));
             
             if processor.initialized
-                CeP = processor.effect_site_P.Ce_current;
-                CeR = processor.effect_site_R.Ce_current;
-                E0_curr = processor.E0.x;
+                CeP = processor.effect_site_P.Ce_delayed_output;
+                CeR = processor.effect_site_R.Ce_delayed_output;
                 
                 CeP_trajectory(k) = CeP;
                 CeR_trajectory(k) = CeR;
                 ke0_trajectory(k) = processor.effect_site_P.ke0 * 60;
                 tau_d_trajectory(k) = processor.effect_site_P.tau_d;
                 
-                pred_pop(k) = predict_bis_proper_v3(cfg.population_params_van, ...
-                                                    CeP, CeR, E0_curr, ...
+                pred_pop(k) = predict_bis_population(cfg.population_params_van, ...
+                                                    CeP, CeR, cfg.E0_fixed, ...
                                                     'vanluchene', cfg.BISmin_fixed);
 
                 k_trajectory(k) = processor.ekf_k.k;
-                kP_trajectory(k) = processor.ekf_2d.current_params(1);
-                kR_trajectory(k) = processor.ekf_2d.current_params(2);
                 kP_fim_trajectory(k) = processor.ekf_2d_fim.current_params(1);
                 kR_fim_trajectory(k) = processor.ekf_2d_fim.current_params(2);
                 Xhist_loglin(:,k) = processor.ekf_loglin.current_params;
@@ -158,8 +158,6 @@ for i = 1:min(300, N)
                 ke0_trajectory(k) = NaN; tau_d_trajectory(k) = NaN;
                 pred_pop(k) = NaN;
                 k_trajectory(k) = 1.0;
-                kP_trajectory(k) = 1.0;
-                kR_trajectory(k) = 1.0;
             end
             
             P_diag = diag(processor.ekf_van.P);
@@ -243,10 +241,6 @@ for i = 1:min(300, N)
 
         results.raw(i).k_hist = processor.ekf_k.k_hist;
         results.raw(i).k_var  = processor.ekf_k.P_hist;
-        results.raw(i).kP_hist = processor.ekf_2d.param_hist(:,1);
-        results.raw(i).kR_hist = processor.ekf_2d.param_hist(:,2);
-        results.raw(i).kP_var = processor.ekf_2d.P_hist(:,1);
-        results.raw(i).kR_var = processor.ekf_2d.P_hist(:,2);
         
         results.metrics.van.MAE(i,1) = mae_v;
         results.metrics.gre.MAE(i,1) = mae_g;
@@ -264,6 +258,10 @@ for i = 1:min(300, N)
     end
 end
 
+if ~isempty(results.fail_ids)
+    error('%d of %d cohort cases failed: %s', ...
+        numel(results.fail_ids), numel(cohort), mat2str(results.fail_ids));
+end
 save(fullfile(results_dir, 'bis_analysis_results_v6_0.mat'), 'results', 'cfg', '-v7.3');
 %% =============== PARAMETER MULTIPLICITY ANALYSIS ==========
 pid_test = 105;
@@ -293,7 +291,7 @@ plot_2d_comparison(results, 101, cfg, results_dir);
 plot_population_stats_boxplot(results);
 %%
 plot_identifiability_comparison(results, results_dir);
-plot_1d_vs_2d_fim(results, 105, results_dir);
+plot_1d_vs_2d(results, 105, results_dir);
 plot_1d_vs_3d(results, 105, results_dir);
 plot_parameter_clustering_boxplots(results, results_dir);
 %%
@@ -328,12 +326,12 @@ generate_figure6_2d_drift(results, fig_dir);
 generate_combined_identifiability_figure(results, cfg, fig_dir, 102);
 %% Figure 8+: Case Studies and 4D Parameter Evolution
 fprintf('Generating case studies and 4D parameter evolution figures...\n');
-if exist('build_vec_from_results_v3','file') || true
-    vec = build_vec_from_results_v3(results);
-    cases = pick_case_studies_v3(vec, results);
-    plot_case_studies_v3(cases, results, cfg, fig_dir);
+if exist('build_vec_from_results','file') || true
+    vec = build_vec_from_results(results);
+    cases = pick_case_studies(vec, results);
+    plot_case_studies(cases, results, cfg, fig_dir);
     fprintf('  Saved: figure_cases_comparison.png\n');
-    plot_case_study_params_grid_v3(cases, results, cfg, fig_dir);
+    plot_case_study_params(cases, results, cfg, fig_dir);
     fprintf('  Saved: figure_4d_params.png\n');
 end
 

@@ -1,7 +1,6 @@
-function dBIS_dCe = compute_dBIS_dCe(params, CeP, CeR, model_type, drug)
+function dBIS_dCe = compute_dBIS_dCe(params, CeP, CeR, model_type, drug, E0, BISmin)
     C50P = params(1); C50R = params(2);
     gamma = params(3); syn = params(4);
-    E0 = 93; BISmin = 32;
     eps = 1e-12;
     
     uP = CeP / max(C50P, eps);

@@ -7,7 +7,7 @@ function [bis_pred, state] = update_ekf_kscale(state, bis_obs, CeP, CeR, E0, BIS
 
     bis_pred = predict_bis_1d_internal(k, CeP, CeR, E0, BISmin_fixed, state);
     
-    if CeP < 0.5 && CeR < 0.1
+    if CeP < 0.5 && CeR < 0.001
         state.k_hist(end+1,1) = k;
         state.P_hist(end+1,1) = Pk;
         return;
@@ -44,44 +44,21 @@ function [bis_pred, state] = update_ekf_kscale(state, bis_obs, CeP, CeR, E0, BIS
     end
 
     innovation = bis_obs - bis_pred;
-    
-    if abs(innovation) < 0.5
-        state.k_hist(end+1,1) = k;
-        state.P_hist(end+1,1) = Pk;
-        return;
-    end
-    
-    % Időbeli frissítés (Time Update)
-    P_minus = Pk + state.Q; 
-    
-    % Mérési frissítés (Measurement Update)
+
+    P_minus = Pk + state.Q;
+
     S  = Hk * P_minus * Hk' + R_curr;
-    Kk = P_minus * Hk' / max(S, 1e-6); % Osztásvédelem
-    
-    % Nyers paraméter frissítés
-    k_raw_change = Kk * innovation;
-    
-    % --- 8. Rate Limiting és Korlátok (A Szigorú Rész) ---
-    % Nem engedünk azonnali ugrást, csak fizikai sebességgel
-    max_step_per_sample = 0.05; % Pl. max 0.05 változás mintánként
-    
-    dk_clamped = max(-max_step_per_sample, min(max_step_per_sample, k_raw_change));
+    Kk = P_minus * Hk' / max(S, 1e-6);
+
+    max_step_per_sample = 0.05;
+    dk_clamped = max(-max_step_per_sample, min(max_step_per_sample, Kk * innovation));
     k_new = k + dk_clamped;
-    
-    % Abszolút korlátok
     k_new = max(state.lb_k, min(state.ub_k, k_new));
-    
-    % Kovariancia frissítése (Joseph-form a stabilitásért)
-    % P = (I - KH)P(I - KH)' + KRK' 
-    % Skalár esetben egyszerűsítve: P = (1 - KH) * P_minus
-    P_new = (1 - Kk * Hk) * P_minus;
-    
-    % Kovariancia "Safe Guard" (Ne legyen túl kicsi, se túl nagy)
-    % Túl kicsi P -> A szűrő "elalszik" (nem tanul)
-    % Túl nagy P -> A szűrő instabil
+
+    % Joseph form, scalar case: P = (1 - KH)^2 P + K^2 R
+    P_new = (1 - Kk * Hk)^2 * P_minus + Kk^2 * R_curr;
     P_new = max(1e-6, min(0.5^2, P_new));
-    
-    % --- 9. Állapot mentése ---
+
     state.k = k_new;
     state.P = P_new;
     state.k_hist(end+1,1) = k_new;
