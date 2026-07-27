@@ -1,8 +1,7 @@
 function generate_figure3_dimensionality(results, fig_dir)
-% FIGURE 3: The Dimensionality Paradox (MAE vs. Model Dimension)
-% Shows non-monotonic relationship
+% FIGURE 3: In-sample MAE against model dimension, all models at process noise cfg.q.
 
-    fprintf('Generating Figure 3: Dimensionality Paradox...\n');
+    fprintf('Generating Figure 3: MAE vs model dimension...\n');
     
     valid_mask = ~isnan(results.metrics.van.MAE) & ...
                  ~isnan(results.metrics.gre.MAE) & ...
@@ -19,12 +18,8 @@ function generate_figure3_dimensionality(results, fig_dir)
     mae_gre = results.metrics.gre.MAE(valid_mask);
     
     N = sum(valid_mask);
-    
-    dims = [0, 1, 2, 3, 4, 4];
-    means = [mean(mae_pop), mean(mae_k), mean(mae_2d), mean(mae_ll), mean(mae_van), mean(mae_gre)];
-    stds = [std(mae_pop), std(mae_k), std(mae_2d), std(mae_ll), std(mae_van), std(mae_gre)];
-    
-    fig = figure('Name', 'Figure 3: Dimensionality Paradox', 'Color', 'w', ...
+
+    fig = figure('Name', 'Figure 3: MAE vs model dimension', 'Color', 'w', ...
                  'Position', [50 50 900 600]);
     
     % Main plot - just Bouillon line for clarity
@@ -39,9 +34,6 @@ function generate_figure3_dimensionality(results, fig_dir)
     % Add Greco as separate point
     errorbar(4.15, mean(mae_gre), std(mae_gre), 'rs', 'LineWidth', 2, ...
              'MarkerSize', 12, 'MarkerFaceColor', 'r', 'CapSize', 8);
-    
-    % Highlight the paradox: 2D worse than 1D
-    scatter(2, mean(mae_2d), 200, [1 0.5 0], 'filled', 'MarkerEdgeColor', 'k', 'LineWidth', 2);
     
     % Add reference line at 1D
     yline(mean(mae_k), 'c--', 'LineWidth', 2);
@@ -58,10 +50,10 @@ function generate_figure3_dimensionality(results, fig_dir)
     
     xlabel('Model Dimension (Number of Estimated Parameters)', 'FontSize', 13);
     ylabel('Mean Absolute Error ± SD (BIS units)', 'FontSize', 13);
-    title(sprintf('Figure 3: The Dimensionality Paradox (N=%d)', N), ...
+    title(sprintf('Figure 3: In-sample MAE vs model dimension (N=%d)', N), ...
           'FontSize', 14, 'FontWeight', 'bold');
-    
-    legend({'Bouillon 4D trajectory', 'Greco 4D', '2D paradox point', '1D reference'}, ...
+
+    legend({'Bouillon 4D trajectory', 'Greco 4D', '1D reference'}, ...
            'Location', 'northeast', 'FontSize', 11);
     
     xlim([-0.5 4.7]);
@@ -69,12 +61,15 @@ function generate_figure3_dimensionality(results, fig_dir)
     grid on;
     set(gca, 'XTick', 0:4, 'FontSize', 11);
     
-    % Add annotation box explaining the paradox
-    annotation('textbox', [0.15 0.15 0.35 0.12], ...
-               'String', {'{\bf Key Finding:} Adding parameters (1D→2D)', ...
-                         'degrades performance, indicating', ...
-                         'non-identifiability of drug-specific effects.'}, ...
+    d12 = mean(mae_2d) - mean(mae_k);
+    [~, best] = min([mean(mae_pop), mean(mae_k), mean(mae_2d), mean(mae_ll), mean(mae_van)]);
+    labels = {'population', '1D', '2D', '3D', '4D'};
+    [~, p12] = ttest(mae_2d, mae_k);
+    annotation('textbox', [0.15 0.15 0.40 0.12], ...
+               'String', {sprintf('MAE is not monotone in dimension: %s is lowest.', labels{best}), ...
+                          sprintf('1D\\rightarrow2D: %+.2f BIS (paired t, p = %.2f).', d12, p12), ...
+                          'All models at the same process noise q.'}, ...
                'BackgroundColor', 'w', 'EdgeColor', 'k', 'FontSize', 10);
-    
+
     save_figure(fig, fig_dir, 'figure3_dimensionality');
 end

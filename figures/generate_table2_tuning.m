@@ -36,7 +36,11 @@ function generate_table2_tuning(cfg, fig_dir)
     fprintf(fid, '\nShared parameters:\n');
     fprintf(fid, '  R_base = %.0f\n', cfg.R_base);
     fprintf(fid, '  R_disequilibrium_factor = %.0f\n', cfg.R_disequilibrium_factor);
-    fprintf(fid, '  ke0P = %.3f /min, ke0R = %.3f /min\n', cfg.ke0P, cfg.ke0R);
+    fprintf(fid, '  ke0P = %.3f /min (Schnider, no covariates)\n', cfg.ke0P);
+    fprintf(fid, '  ke0R = %.3f /min at the reference age of 40, then Minto''s\n', cfg.ke0R);
+    fprintf(fid, '         -0.007 (age - 40) per patient\n');
+    fprintf(fid, '  q = %.0e  (Q = q * P0 for every model)\n', cfg.q);
+    fprintf(fid, '  min_drug_effect = %.2f  (shared learning gate)\n', cfg.min_drug_effect);
     fprintf(fid, '  E0 = %.0f, BISmin = %.0f (population values, 0D model)\n', ...
         cfg.E0_fixed, cfg.BISmin_fixed);
     fclose(fid);
