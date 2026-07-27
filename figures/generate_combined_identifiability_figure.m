@@ -1,13 +1,13 @@
 function generate_combined_identifiability_figure(results, cfg, fig_dir, target_pid)
 % FIGURE 7: COMPREHENSIVE IDENTIFIABILITY ANALYSIS
 % Merges FIM diagnostics and Error Landscape proof into one 2x2 figure.
-% Target: Patient 105 (Representative Case)
+% Target: Patient 101 (Representative Case)
 
     fprintf('Generating Figure 7: Combined Identifiability Analysis...\n');
     
     pid_idx = find([results.patient_id] == target_pid);
     if isempty(pid_idx)
-        warning('Patient 105 not found, picking first valid long case.');
+        warning('Patient %d not in results, picking longest valid case.', target_pid);
         [~, pid_idx] = max([results.demographics.Duration]);
         target_pid = results.patient_id(pid_idx);
     end
@@ -89,45 +89,43 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     end
 
     % =====================================================================
-    % PREPARE SNAPSHOT FOR PANELS C & D
+    % TRAJECTORY FOR PANELS C & D
     % =====================================================================
-    % Pick a stable timepoint (e.g., 50% of case or max concentration)
-    t_snap_idx = round(length(r.time) * 0.6); 
-    CeP_ref = r.CeP_trajectory(t_snap_idx);
-    CeR_ref = r.CeR_trajectory(t_snap_idx);
-    E0_ref = r.E0_trajectory(t_snap_idx);
-    BIS_meas = r.bis(t_snap_idx);
-    
-    % Ensure non-zero concentrations
-    if CeP_ref < 0.5
-        [~, t_snap_idx] = max(r.CeP_trajectory);
-        CeP_ref = r.CeP_trajectory(t_snap_idx);
-        CeR_ref = r.CeR_trajectory(t_snap_idx);
-        BIS_meas = r.bis(t_snap_idx);
-    end
+    % Landscapes are evaluated over the whole case. A single sample gives an
+    % equal-output curve for any two parameters and says nothing about
+    % identifiability from the trajectory.
+    ok = ~isnan(r.bis) & ~isnan(r.CeP_trajectory) & ~isnan(r.CeR_trajectory) & ...
+         ~isnan(r.E0_trajectory) & r.CeP_trajectory > 0.5;
+    idx = find(ok);
+    stride = max(1, floor(numel(idx)/600));
+    idx = idx(1:stride:end);
+
+    bis_t = r.bis(idx);
+    CeP_t = r.CeP_trajectory(idx);
+    CeR_t = r.CeR_trajectory(idx);
+    E0_t  = r.E0_trajectory(idx);
+    n_t   = numel(idx);
 
     % =====================================================================
     % PANEL C: 1D CONVEXITY PROOF
     % =====================================================================
     subplot(2, 2, 3);
     
-    k_range = linspace(0.2, 3.0, 100);
-    sse_1d = zeros(size(k_range));
+    k_range = linspace(0.2, 6.0, 150);
+    mae_1d = zeros(size(k_range));
     for i = 1:length(k_range)
-        bis_pred = predict_bis_2d_model(k_range(i), k_range(i), CeP_ref, CeR_ref, E0_ref, cfg.BISmin_fixed, cfg);
-        sse_1d(i) = (bis_pred - BIS_meas)^2;
+        p = predict_bis_2d_model(k_range(i), k_range(i), CeP_t, CeR_t, E0_t, cfg.BISmin_fixed, cfg);
+        mae_1d(i) = mean(abs(p - bis_t));
     end
-    
-    plot(k_range, sse_1d, 'b-', 'LineWidth', 2); hold on;
-    [min_err, min_idx] = min(sse_1d);
+
+    plot(k_range, mae_1d, 'b-', 'LineWidth', 2); hold on;
+    [min_err, min_idx] = min(mae_1d);
     plot(k_range(min_idx), min_err, 'rx', 'MarkerSize', 10, 'LineWidth', 2);
-    
+
     xlabel('Parameter k (1D Model)');
-    ylabel('Squared Error (SSE)');
-    title('(c) 1D Model: Strict Convexity', 'FontSize', 12, 'FontWeight', 'bold');
+    ylabel('MAE (BIS)');
+    title(sprintf('(c) 1D error landscape (%d samples)', n_t), 'FontSize', 12, 'FontWeight', 'bold');
     grid on; axis tight;
-    text(k_range(min_idx) + 0.25, 80, 'Global Minimum', ...
-     'Color', 'r', 'FontSize', 9, 'FontWeight', 'bold');
 
     % =====================================================================
     % PANEL D: 2D FLAT VALLEY PROOF
@@ -137,34 +135,30 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     kp_range = linspace(0.4, 2.8, 50);
     kr_range = linspace(0.4, 2.8, 50);
     [KP, KR] = meshgrid(kp_range, kr_range);
-    sse_2d = zeros(size(KP));
-    
+    mae_2d = zeros(size(KP));
+
     for i = 1:size(KP,1)
         for j = 1:size(KP,2)
-            bis_pred = predict_bis_2d_model(KP(i,j), KR(i,j), CeP_ref, CeR_ref, E0_ref, cfg.BISmin_fixed, cfg);
-            sse_2d(i,j) = (bis_pred - BIS_meas)^2;
+            p = predict_bis_2d_model(KP(i,j), KR(i,j), CeP_t, CeR_t, E0_t, cfg.BISmin_fixed, cfg);
+            mae_2d(i,j) = mean(abs(p - bis_t));
         end
     end
-    
-    % Plot Contour
-    contourf(KP, KR, log10(sse_2d + 1e-1), 20, 'LineStyle', 'none'); 
+
+    contourf(KP, KR, mae_2d, 20, 'LineStyle', 'none', 'HandleVisibility', 'off');
     colormap(gca, 'parula');
-    c = colorbar; c.Label.String = 'log(SSE)';
+    c = colorbar; c.Label.String = 'MAE (BIS)';
     hold on;
-    
-    % Highlight the valley floor
-    min_val_2d = min(sse_2d(:));
-    [r_min, c_min] = find(sse_2d < min_val_2d + 1.0); % Tolerance zone
-    plot(kp_range(c_min), kr_range(r_min), 'w.', 'MarkerSize', 2, 'DisplayName', 'Valley Floor');
-    
+
+    % Sets within 1 BIS of the best fit: the practically indistinguishable region
+    min_val_2d = min(mae_2d(:));
+    [r_min, c_min] = find(mae_2d < min_val_2d + 1.0);
+    plot(kp_range(c_min), kr_range(r_min), 'w.', 'MarkerSize', 2, 'DisplayName', 'within 1 BIS');
+
     xlabel('Parameter k_P');
     ylabel('Parameter k_R');
-    title('(d) 2D Error Landscape', 'FontSize', 12, 'FontWeight', 'bold');
+    title(sprintf('(d) 2D error landscape (%d samples)', n_t), 'FontSize', 12, 'FontWeight', 'bold');
     axis square;
-    
-    % Add correlation line annotation
-    text(1.5, 1.5, 'Flat Valley', 'Color', 'k', 'FontWeight', 'bold', ...
-     'HorizontalAlignment', 'center', 'Rotation', 45, 'FontSize', 10);
+    legend('Location','NorthEast','FontSize',8);
 
     % --- SAVE ---
     if ~exist(fig_dir, 'dir'), mkdir(fig_dir); end

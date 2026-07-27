@@ -79,7 +79,7 @@ function generate_figure4_case_study(results, patient_id, cfg, fig_dir)
     hold on;
     plot(t, r.kR_trajectory(1:n_keep), 'r-', 'LineWidth', 2, 'DisplayName', 'k_R');
     plot(t, r.k_trajectory(1:n_keep), 'c--', 'LineWidth', 1.5, 'DisplayName', 'k (1D)');
-    yline(1.0, 'k:', 'LineWidth', 1);
+    yline(1.0, 'k:', 'LineWidth', 1, 'HandleVisibility', 'off');
     
     xlim([0 max(t)]);
     ylabel('Potency Scale', 'FontSize', 11);

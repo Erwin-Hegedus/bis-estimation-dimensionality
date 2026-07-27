@@ -1,13 +1,13 @@
 function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
-                                          data_quality, learning_enabled, CpP, CpR, ke0P, ke0R)
-    
+                                          learning_enabled, Rmult, CpP, CpR, ke0P, ke0R)
+
     kP = ekf.current_params(1);
     kR = ekf.current_params(2);
-    
+
     % Predict
     pred = predict_bis_2d_model(kP, kR, CeP, CeR, E0, BISmin, cfg);
-    
-    if ~learning_enabled || data_quality > 2
+
+    if ~learning_enabled
         return;
     end
     
@@ -17,7 +17,7 @@ function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
     % Adaptive measurement noise
     D_P = abs(CpP - CeP) / max(CeP, 0.5);
     D_R = abs(CpR*1000 - CeR*1000) / max(CeR*1000, 1);
-    R = cfg.R_base * (1 + cfg.R_disequilibrium_factor * (D_P + D_R)^2);
+    R = Rmult * cfg.R_base * (1 + cfg.R_disequilibrium_factor * (D_P + D_R)^2);
     
     % === 2. UPDATE FIM (Exponentially Weighted) ===
     outer_product = (H' * H) / R;
@@ -54,15 +54,9 @@ function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
     S = H * P_pred * H' + R;
     if S < 1e-6, return; end
     K = P_pred * H' / S;
-    
-    % Raw update
-    delta_theta_raw = K * innovation;
-    
-    % Project to identifiable subspace (like 4D)
-    delta_theta = P_proj * delta_theta_raw;
-    
+
     % === 5. RATE LIMITING ===
-    delta_theta = max(-ekf.rate_max, min(ekf.rate_max, delta_theta));
+    delta_theta = max(-ekf.rate_max, min(ekf.rate_max, P_proj * (K * innovation)));
     
     % === 6. PARAMETER UPDATE ===
     ekf.current_params = ekf.current_params + delta_theta;

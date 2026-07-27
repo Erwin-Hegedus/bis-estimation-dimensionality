@@ -10,7 +10,7 @@ drivers, not part of the estimator: nothing in `core/`, `ekf/`, `physiology/` or
 |---|---|---|
 | `cfg_canonical.mat` | yes | configuration of the published run |
 | `cohort_caseids.csv` | yes | the 209 analysed cases; column 1 is the patient index used throughout the code, column 2 the VitalDB CaseID |
-| `patientDataFinal_auto.mat` | **no** | 300-case VitalDB extract, ~70 MB. Place it in the repository root. Rebuild it from VitalDB using the CaseIDs in `cohort_caseids.csv`. |
+| `patientDataFinal_auto.mat` | yes | 300-case VitalDB extract, ~67 MB, tracked at the repository root. Rebuildable from VitalDB using the CaseIDs in `cohort_caseids.csv`. |
 
 `repro_paths.m` resolves all of these and reports by name anything that is
 missing, rather than failing later inside a load.

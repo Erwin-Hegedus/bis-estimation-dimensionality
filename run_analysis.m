@@ -49,9 +49,6 @@ cfg.fim_forgetting = 0.995;
 cfg.R_base = 400;
 cfg.R_disequilibrium_factor = 0;
 
-cfg.E0_BISmin_gap_min = 50;
-cfg.endpoint_observation_window = 30;
-
 cfg.pk.prop = struct('V1',4.27,'V2',18.9,'V3',238,'CL',1.89,'Q2',1.29,'Q3',0.836,'input_conc',20);
 cfg.pk.remi = struct('V1',5.1,'V2',9.82,'V3',5.42,'CL',2.6,'Q2',2.05,'Q3',0.076,'input_conc',0.02);
 
@@ -59,9 +56,6 @@ cfg.target_band = [40,60];
 cfg.min_Ce_for_learning = 0.1;
 cfg.online = struct('initialization_samples',10);
 cfg.artifact = struct('bis_min',0,'bis_max',100,'bis_jump_thresh',25,'bis_rate_thresh',15);
-cfg.e0 = struct('q', 0.02, 'P0', 4.0, 'R', 50, 'min', 70, 'max', 100);
-cfg.bismin = struct('q', 0.02, 'P0', 64.0, 'R', 50, 'init', 10, 'min', 10, 'max', 50);
-
 % Fisher Information Thresholds
 cfg.fisher_threshold = [5; 5; 4; 3];
 cfg.identifiability_threshold = 0.15;
@@ -121,6 +115,7 @@ for c = 1:numel(cohort)
         RSE_van = nan(4,n); RSE_gre = nan(4,n);
         Phist_van = nan(4,n);
         FIM_cond_hist = nan(n,1);
+        FIM_eig_hist = nan(4,n);
         CeP_trajectory = nan(n,1); CeR_trajectory = nan(n,1);
         ke0_trajectory = nan(n,1);
         tau_d_trajectory = nan(n,1);
@@ -130,6 +125,8 @@ for c = 1:numel(cohort)
         pred_2d_fim = nan(n,1);
         kP_fim_trajectory = nan(n,1);
         kR_fim_trajectory = nan(n,1);
+        kP_var_trajectory = nan(n,1);
+        kR_var_trajectory = nan(n,1);
 
         
         for k = 1:n
@@ -152,6 +149,8 @@ for c = 1:numel(cohort)
                 k_trajectory(k) = processor.ekf_k.k;
                 kP_fim_trajectory(k) = processor.ekf_2d_fim.current_params(1);
                 kR_fim_trajectory(k) = processor.ekf_2d_fim.current_params(2);
+                kP_var_trajectory(k) = processor.ekf_2d_fim.P(1,1);
+                kR_var_trajectory(k) = processor.ekf_2d_fim.P(2,2);
                 Xhist_loglin(:,k) = processor.ekf_loglin.current_params;
             else
                 CeP_trajectory(k) = 0; CeR_trajectory(k) = 0;
@@ -169,6 +168,9 @@ for c = 1:numel(cohort)
             
             if isfield(processor.ekf_van, 'FIM_condition')
                 FIM_cond_hist(k) = processor.ekf_van.FIM_condition;
+            end
+            if isfield(processor.ekf_van, 'FIM_eigenvalues')
+                FIM_eig_hist(:,k) = processor.ekf_van.FIM_eigenvalues(:);
             end
             
             if ~isempty(processor.ekf_van.current_params)
@@ -229,6 +231,8 @@ for c = 1:numel(cohort)
         results.raw(i).tau_d_trajectory = tau_d_trajectory(:);
         results.raw(i).Phist_van = Phist_van;
         results.raw(i).FIM_cond_hist = FIM_cond_hist(:);
+        results.raw(i).FIM_eig_hist = FIM_eig_hist;
+        results.raw(i).FIM_final = processor.ekf_van.FIM;
         results.raw(i).BISmin_trajectory = BISmin_trajectory(:);
         results.raw(i).E0_trajectory = E0_trajectory(:);
         results.raw(i).k_trajectory = k_trajectory(:);
@@ -237,10 +241,26 @@ for c = 1:numel(cohort)
         results.raw(i).pred_2d_fim = pred_2d_fim(:);
         results.raw(i).kP_fim_trajectory = kP_fim_trajectory(:);
         results.raw(i).kR_fim_trajectory = kR_fim_trajectory(:);
+        results.raw(i).kP_hist = kP_fim_trajectory(:);
+        results.raw(i).kR_hist = kR_fim_trajectory(:);
+        results.raw(i).kP_var  = kP_var_trajectory(:);
+        results.raw(i).kR_var  = kR_var_trajectory(:);
 
 
         results.raw(i).k_hist = processor.ekf_k.k_hist;
         results.raw(i).k_var  = processor.ekf_k.P_hist;
+
+        tol = 1e-9;
+        results.raw(i).at_bound_van    = abs(processor.ekf_van.current_params(:) - cfg.lb(:)) < tol ...
+                                       | abs(processor.ekf_van.current_params(:) - cfg.ub(:)) < tol;
+        results.raw(i).at_bound_gre    = abs(processor.ekf_gre.current_params(:) - cfg.lb(:)) < tol ...
+                                       | abs(processor.ekf_gre.current_params(:) - cfg.ub(:)) < tol;
+        results.raw(i).at_bound_loglin = abs(processor.ekf_loglin.current_params(:) - processor.ekf_loglin.lb(:)) < tol ...
+                                       | abs(processor.ekf_loglin.current_params(:) - processor.ekf_loglin.ub(:)) < tol;
+        results.raw(i).at_bound_2d     = abs(processor.ekf_2d_fim.current_params(:) - processor.ekf_2d_fim.lb(:)) < tol ...
+                                       | abs(processor.ekf_2d_fim.current_params(:) - processor.ekf_2d_fim.ub(:)) < tol;
+        results.raw(i).at_bound_1d     = abs(processor.ekf_k.k - processor.ekf_k.lb_k) < tol ...
+                                       | abs(processor.ekf_k.k - processor.ekf_k.ub_k) < tol;
         
         results.metrics.van.MAE(i,1) = mae_v;
         results.metrics.gre.MAE(i,1) = mae_g;
@@ -302,10 +322,6 @@ fprintf('\n=== GENERATING JOURNAL FIGURES ===\n');
 
 fig_dir = results_dir;
 
-%% Figure 1: Protocol Characteristics
-%load('bis_analysis_results_v6_0.mat')
-%generate_figure1_protocol(patientDataFinal, fig_dir);
-
 %% Figure 2: MAE Boxplots (all models)
 generate_figure2_mae_boxplots(results, fig_dir);
 
@@ -323,7 +339,7 @@ generate_figure6_2d_drift(results, fig_dir);
 
 %% Figure 7: FIM Diagnostics
 %generate_figure7_fim_diagnostics(results, fig_dir);
-generate_combined_identifiability_figure(results, cfg, fig_dir, 102);
+generate_combined_identifiability_figure(results, cfg, fig_dir, 101);
 %% Figure 8+: Case Studies and 4D Parameter Evolution
 fprintf('Generating case studies and 4D parameter evolution figures...\n');
 if exist('build_vec_from_results','file') || true
@@ -341,10 +357,11 @@ generate_table1_demographics(results, fig_dir);
 generate_table2_tuning(cfg, fig_dir);
 generate_table3_accuracy(results, fig_dir);
 generate_table4_equivalence(results, fig_dir);
+generate_table5_equivalent_params(eq_info, pid_test, fig_dir);
 
 
 fprintf('\n=== PERSONALIZATION SPEED ANALYSIS ===\n');
 report_personalization_stats(results);
 generate_simulation_summary(results, cfg);
-save(fullfile(results_dir, 'bis_analysis_results_v6_0.mat'), 'results', 'cfg', '-v7.3');
+save(fullfile(results_dir, 'bis_analysis_results_v6_0.mat'), 'results', 'cfg', 'eq_info', 'pid_test', '-v7.3');
 fprintf('\nV6.0 (Rigorous Estimator) Analysis complete. Results saved.\n');

@@ -16,10 +16,14 @@ function coh = monte_carlo_cohort(results, cfg)
     pids     = find(valid);
     box_diag = norm(cfg.ub(:) - cfg.lb(:));      % max possible L2 distance in the box
 
-    np      = numel(pids);
-    frac    = nan(np, 1);                         % fraction of the 500 sets that are equivalent
-    rad_max = nan(np, 1);                         % maximum L2 radius, normalized by box_diag
-    skipped = false(np, 1);                       % patients with too few valid samples
+    np        = numel(pids);
+    frac      = nan(np, 1);                       % fraction of the 500 sets that are equivalent
+    frac_fix  = nan(np, 1);                       % same, under a fixed +1 BIS tolerance
+    rad_max   = nan(np, 1);                       % maximum L2 radius, normalized by box_diag
+    norm_max  = nan(np, 1);                       % component-normalised, unit-invariant
+    norm_p95  = nan(np, 1);                       % 95th pct: max over 500 draws is unstable
+    share     = nan(np, 4);                       % per-parameter share of normalised distance
+    skipped   = false(np, 1);                     % patients with too few valid samples
 
     for i = 1:np
         try
@@ -28,17 +32,31 @@ function coh = monte_carlo_cohort(results, cfg)
             skipped(i) = true;
             continue;
         end
-        frac(i) = e.N_eq / e.N_total;             % 0 when no equivalent set was found
+        frac(i)     = e.N_eq / e.N_total;         % 0 when no equivalent set was found
+        frac_fix(i) = e.N_eq_fixed / e.N_total;
         if e.has_eq
-            rad_max(i) = e.radius_max / box_diag;
+            rad_max(i)  = e.radius_max / box_diag;
+            norm_max(i) = e.norm_max / e.norm_bound;
+            norm_p95(i) = e.norm_p95 / e.norm_bound;
+            share(i,:)  = e.share_norm;
         end
     end
 
     coh.pids        = pids;
     coh.box_diag    = box_diag;
     coh.frac        = frac;
+    coh.frac_fixed  = frac_fix;
     coh.radius_norm = rad_max;
+    coh.norm_max    = norm_max;
+    coh.norm_p95    = norm_p95;
+    coh.share_norm  = share;
     coh.skipped     = skipped;
-    coh.frac_stats  = [median(frac,    'omitnan'), quantile(frac,    [.25 .75]), min(frac),                 max(frac)];
-    coh.rad_stats   = [median(rad_max, 'omitnan'), quantile(rad_max, [.25 .75]), min(rad_max, [], 'omitnan'), max(rad_max, [], 'omitnan')];
+
+    st = @(x) [median(x,'omitnan'), quantile(x,[.25 .75]), min(x,[],'omitnan'), max(x,[],'omitnan')];
+    coh.frac_stats       = st(frac);
+    coh.frac_fixed_stats = st(frac_fix);
+    coh.rad_stats        = st(rad_max);     % raw, unit-dependent: kept for continuity
+    coh.norm_max_stats   = st(norm_max);    % unit-invariant
+    coh.norm_p95_stats   = st(norm_p95);
+    coh.share_median     = median(share, 1, 'omitnan');
 end

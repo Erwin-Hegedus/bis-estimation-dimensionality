@@ -28,11 +28,10 @@ function processor = init_processor(cfg, start_time, pk_prop, pk_remi, ~)
     processor.ekf_van = init_ekf_4d(cfg, 'vanluchene');
     processor.ekf_gre = init_ekf_4d(cfg, 'greco');
     
-    processor.online = struct('bis_buffer',[],'time_buffer',[], ...
-        'initialization_samples',10,'E0_estimate',NaN,'R0_estimate',NaN);
+    processor.online = struct('initialization_samples',10);
     
-    processor.E0 = struct('x', 93, 'buffer', [], 'locked', false);
-    processor.BISmin = struct('x', cfg.bismin.init, 'P', cfg.bismin.P0);
+    processor.E0 = struct('x', cfg.E0_fixed);
+    processor.BISmin = struct('x', cfg.BISmin_fixed);
     
     processor.induction_delay = struct('time',[],'bis',[],'Cp_P',[],'estimated',false,'ke0_from_delay',NaN);
 end

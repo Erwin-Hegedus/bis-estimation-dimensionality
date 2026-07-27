@@ -8,7 +8,7 @@ function P = repro_paths()
 %
 %   Fields:
 %     repo        repository root
-%     data_file   300-case VitalDB extract (not in the repository, see README)
+%     data_file   300-case VitalDB extract, tracked at the repository root
 %     cfg         configuration struct of the published run
 %     cohort      209 patient indices of the analysed cohort
 %     outdir      reproduce/output, created on first use
@@ -22,8 +22,8 @@ function P = repro_paths()
     P.data_file = fullfile(P.repo, 'patientDataFinal_auto.mat');
     if ~exist(P.data_file, 'file')
         error('repro:missingData', ['patientDataFinal_auto.mat not found in %s.\n' ...
-            'It is the 300-case VitalDB extract and is too large to distribute ' ...
-            'with the repository; see reproduce/README.md.'], P.repo);
+            'It is the 300-case VitalDB extract tracked at the repository root; ' ...
+            'see reproduce/README.md.'], P.repo);
     end
 
     cfg_file = fullfile(here, 'cfg_canonical.mat');

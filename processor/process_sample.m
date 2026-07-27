@@ -4,7 +4,7 @@ function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] 
     cfg = processor.cfg;
     
     % 1. Artifact Gating
-    [y_eff, ~, processor.art, data_quality] = artifact_gate(processor.art, time_k, bis_k, cfg);
+    [y_eff, Rmult, processor.art, data_quality] = artifact_gate(processor.art, time_k, bis_k, cfg);
     
     % 2. Initialization
     if ~processor.initialized
@@ -32,30 +32,11 @@ function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] 
     CeP = processor.effect_site_P.Ce_delayed_output;
     CeR = processor.effect_site_R.Ce_delayed_output;
     
-    % 6. Ensure State Initialization
-    if isnan(processor.E0.x)
-        processor.E0.x = cfg.E0_fixed;
-        processor.E0.P = 25;
-    end
-    if isnan(processor.BISmin.x)
-        processor.BISmin.x = cfg.bismin.init;
-        processor.BISmin.P = cfg.bismin.P0;
-    end
-    
-    % 7. ESTIMATE ENDPOINTS (E0 and BISmin)
-    params_van = cfg.population_params_van(:);
-    
-    if data_quality <= 2
-        processor = update_E0_and_BISmin(processor, params_van, CeP, CeR, y_eff, data_quality, Cp_P, Cp_R);
-    end
-    
-    E0 = processor.E0.x;
-    BISmin = processor.BISmin.x;
-    if isfield(cfg, 'freeze_endpoints') && cfg.freeze_endpoints
-        BISmin = cfg.BISmin_fixed;
-    end
-    
-    % 8. ESTIMATE PD PARAMETERS
+    % 6. ENDPOINTS: population values, identical for every model
+    E0 = cfg.E0_fixed;
+    BISmin = cfg.BISmin_fixed;
+
+    % 7. ESTIMATE PD PARAMETERS
     learning_enabled = (data_quality <= 2);
     
     CpP = processor.pk_state_P.Cp;
@@ -65,26 +46,28 @@ function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] 
     
     [pred_van, processor.ekf_van] = update_ekf_4d(...
         processor.ekf_van, y_eff, CeP, CeR, E0, BISmin, ...
-        'vanluchene', cfg, data_quality, learning_enabled, ...
+        'vanluchene', cfg, learning_enabled, Rmult, ...
         CpP, CpR, ke0P, ke0R);
-    
+
     [pred_gre, processor.ekf_gre] = update_ekf_4d(...
         processor.ekf_gre, y_eff, CeP, CeR, E0, BISmin, ...
-        'greco', cfg, data_quality, learning_enabled, ...
+        'greco', cfg, learning_enabled, Rmult, ...
         CpP, CpR, ke0P, ke0R);
 
-    % 9. UPDATE 1-PARAMETER k_scale MODEL
+    % 8. UPDATE 1-PARAMETER k_scale MODEL
     [pred_kscale, processor.ekf_k] = update_ekf_kscale( ...
-        processor.ekf_k, y_eff, CeP, CeR, E0, BISmin, cfg, CpP, CpR);
+        processor.ekf_k, y_eff, CeP, CeR, E0, BISmin, cfg, ...
+        learning_enabled, Rmult, CpP, CpR);
 
-    % 10. UPDATE 3-PARAMETER LOG-LINEAR MODEL
+    % 9. UPDATE 3-PARAMETER LOG-LINEAR MODEL
     [pred_loglin, processor.ekf_loglin] = update_ekf_loglin3d( ...
-        processor.ekf_loglin, y_eff, CeP, CeR, E0, BISmin, cfg, CpP, CpR);
+        processor.ekf_loglin, y_eff, CeP, CeR, E0, BISmin, cfg, ...
+        learning_enabled, Rmult, CpP, CpR);
 
-    % 11. UPDATE 2-PARAMETER (kP, kR) MODEL
+    % 10. UPDATE 2-PARAMETER (kP, kR) MODEL
     [pred_2d_fim, processor.ekf_2d_fim] = update_ekf_2d(...
         processor.ekf_2d_fim, y_eff, CeP, CeR, E0, BISmin, ...
-        cfg, data_quality, learning_enabled, CpP, CpR, ke0P, ke0R);
+        cfg, learning_enabled, Rmult, CpP, CpR, ke0P, ke0R);
 
     % Personalization Tracking
     processor = track_personalization_realtime(processor, time_k, cfg);

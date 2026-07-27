@@ -1,27 +1,16 @@
-function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, BISmin, cfg, Cp_P, Cp_R)
+function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, BISmin, cfg, ...
+                                                 learning_enabled, Rmult, Cp_P, Cp_R)
     state.sample_count = state.sample_count + 1;
     
-    a0 = state.current_params(1);
-    aP = state.current_params(2);
-    aR = state.current_params(3);
-    
-    % Prediction
-    xP = log(CeP + state.eps_P);
-    xR = log(CeR * 1000 + state.eps_R);
-    
-    Z = a0 + aP * xP + aR * xR;
-    Z = max(-8, min(8, Z));
-    H_sigmoid = 1 / (1 + exp(-Z));
-    
-    bis_pred = BISmin + (E0 - BISmin) * (1 - H_sigmoid);
-    bis_pred = max(0, min(100, bis_pred));
-    
+    [bis_pred, H_sigmoid, xP, xR] = predict_bis_loglin3d( ...
+        state.current_params, CeP, CeR, E0, BISmin, state);
+
     % Store history
     state.param_hist(end+1, :) = state.current_params';
     state.P_hist(end+1, :) = diag(state.P)';
     
-    % Skip if low concentrations
-    if CeP < 0.5 && CeR < 0.001
+    % Skip if the sample is gated out or concentrations are too low to inform
+    if ~learning_enabled || (CeP < 0.5 && CeR < 0.001)
         return;
     end
     
@@ -34,7 +23,7 @@ function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, B
     diseq_P = Cp_P - CeP;
     diseq_R = Cp_R - CeR;
     diseq_mag = abs(diseq_P)/max(CeP + 0.5, 1) + abs(diseq_R)*1000/max(CeR*1000 + 1, 2);
-    R = state.R_base * (1 + state.R_diseq * diseq_mag^2);
+    R = Rmult * state.R_base * (1 + state.R_diseq * diseq_mag^2);
     
     % === UPDATE FIM ===
     state.FIM = state.FIM_forgetting * state.FIM + (H_jac' * H_jac) / R;
@@ -74,18 +63,14 @@ function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, B
     end
     
     K = P_pred * H_jac' / S;
-    dx_raw = K * innovation;
-    
-    % === PROJECT TO IDENTIFIABLE SUBSPACE ===
-    dx_projected = P_proj * dx_raw;
-    
+
     % === RATE LIMITING ===
-    dx = max(-state.param_rate_max, min(state.param_rate_max, dx_projected));
-    
+    dx = max(-state.param_rate_max, min(state.param_rate_max, P_proj * (K * innovation)));
+
     % === UPDATE ===
     x_new = state.current_params + dx;
     x_new = max(state.lb, min(state.ub, x_new));
-    
+
     % === COVARIANCE ===
     I_KH = eye(3) - K * H_jac;
     P_new = I_KH * P_pred * I_KH' + K * R * K';

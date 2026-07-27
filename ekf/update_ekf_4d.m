@@ -1,15 +1,15 @@
 function [bis_pred, state] = update_ekf_4d(...
-    state, bis_obs, CeP, CeR, E0, BISmin, model, cfg, data_quality, learning_enabled, ...
+    state, bis_obs, CeP, CeR, E0, BISmin, model, cfg, learning_enabled, Rmult, ...
     Cp_P, Cp_R, ke0P, ke0R)
 
     state.sample_count = state.sample_count + 1;
     x = state.current_params(:);
     C50P = x(1); C50R = x(2);
-    
+
     bis_pred = predict_bis_4d(x, CeP, CeR, E0, BISmin, model);
-    
+
     u_total = CeP / C50P + CeR * 1000 / C50R;
-    if ~learning_enabled || data_quality > 2 || u_total < 0.15
+    if ~learning_enabled || u_total < 0.15
         return;
     end
     
@@ -18,7 +18,7 @@ function [bis_pred, state] = update_ekf_4d(...
     diseq_P = Cp_P - CeP;
     diseq_R = Cp_R - CeR;
     diseq_magnitude = abs(diseq_P)/max(C50P,0.1) + abs(diseq_R)*1000/max(C50R,0.1);
-    R = state.R_base * (1 + state.R_disequilibrium_factor * diseq_magnitude^2);
+    R = Rmult * state.R_base * (1 + state.R_disequilibrium_factor * diseq_magnitude^2);
     
     state.FIM = state.FIM_forgetting * state.FIM + (H' * H) / R;
     
@@ -51,13 +51,11 @@ function [bis_pred, state] = update_ekf_4d(...
     S = H * P * H' + R;
     if S < 1e-6, return; end
     K = P * H' / S;
-    dx_raw = K * innovation;
-    dx_projected = P_proj * dx_raw;
     max_change = state.param_rate_max(:);
-    dx = max(-max_change, min(max_change, dx_projected));
+    dx = max(-max_change, min(max_change, P_proj * (K * innovation)));
     x_new = x + dx;
     x_new = max(cfg.lb(:), min(cfg.ub(:), x_new));
-    
+
     I_KH = eye(4) - K * H;
     P_new = I_KH * P * I_KH' + K * R * K';
     P_new = (P_new + P_new') / 2;

@@ -8,7 +8,7 @@ P = repro_paths();
 review_dir = P.outdir;
 
 % This is the one driver that needs the full published results, not just cfg.
-canonical = fullfile(fileparts(P.repo), 'bis_analysis_results_v6_0.mat');
+canonical = fullfile(P.repo, 'results', 'bis_analysis_results_v6_0.mat');
 if ~exist(canonical, 'file')
     error('repro:missingCanonical', ['%s not found. This driver replays the ' ...
         'per-patient fits of the published run; regenerate them with ' ...
@@ -30,8 +30,18 @@ fprintf('\n=== Cohort Monte Carlo (N=%d valid, %d skipped, %d with no equivalent
 fprintf('Box diagonal (max possible L2) = %.2f\n', coh.box_diag);
 fprintf('Equivalent-set fraction:  median %.1f%%   IQR [%.1f%%, %.1f%%]   range [%.1f%%, %.1f%%]\n', ...
         100 * coh.frac_stats);
-fprintf('Normalized max radius:    median %.0f%%   IQR [%.0f%%, %.0f%%]   range [%.0f%%, %.0f%%]\n', ...
+fprintf('Fixed +1 BIS tolerance:   median %.1f%%   IQR [%.1f%%, %.1f%%]   range [%.1f%%, %.1f%%]\n', ...
+        100 * coh.frac_fixed_stats);
+fprintf('\nRadius, raw units (unit-dependent -- do not report):\n');
+fprintf('  max radius / box diag:  median %.0f%%   IQR [%.0f%%, %.0f%%]   range [%.0f%%, %.0f%%]\n', ...
         100 * coh.rad_stats);
+fprintf('Radius, component-normalised by each box width (unit-invariant):\n');
+fprintf('  max radius:             median %.0f%%   IQR [%.0f%%, %.0f%%]   range [%.0f%%, %.0f%%]\n', ...
+        100 * coh.norm_max_stats);
+fprintf('  95th pct radius:        median %.0f%%   IQR [%.0f%%, %.0f%%]   range [%.0f%%, %.0f%%]\n', ...
+        100 * coh.norm_p95_stats);
+fprintf('Share of normalised squared distance:  C50P %.1f%%  C50R %.1f%%  gamma %.1f%%  beta %.1f%%\n', ...
+        100 * coh.share_median);
 
 % Patient 105 as the illustrative example.
 i105 = find(coh.pids == 105, 1);
@@ -59,13 +69,13 @@ title('(a) Equivalent-set fraction', 'FontSize', 15, 'FontWeight', 'bold');
 set(gca, 'FontSize', 12); grid on;
 
 subplot(1,2,2);
-histogram(100 * coh.radius_norm, 'FaceColor', [0.8 0.5 0.3], 'EdgeColor', 'w');
+histogram(100 * coh.norm_p95, 'FaceColor', [0.8 0.5 0.3], 'EdgeColor', 'w');
 hold on;
 if ~isempty(i105)
-    xline(100 * coh.radius_norm(i105), 'r--', 'LineWidth', 2, 'DisplayName', 'Patient 105');
+    xline(100 * coh.norm_p95(i105), 'r--', 'LineWidth', 2, 'DisplayName', 'Patient 105');
     legend('Location', 'best', 'FontSize', 12);
 end
-xlabel('Normalized max L2 radius (%)', 'FontSize', 14);
+xlabel('95th-pct radius, component-normalised (%)', 'FontSize', 14);
 ylabel('Number of patients', 'FontSize', 14);
 title('(b) Equivalence radius', 'FontSize', 15, 'FontWeight', 'bold');
 set(gca, 'FontSize', 12); grid on;

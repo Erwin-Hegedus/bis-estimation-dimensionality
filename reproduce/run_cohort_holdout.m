@@ -1,11 +1,8 @@
 function out = run_cohort_holdout(cfg, q, DATA_FILE, N)
 %RUN_COHORT_HOLDOUT  Held-out evaluation of all models over the cohort.
 %   Each case is split at the midpoint of its valid window. Every model adapts
-%   normally on the first half; at the split all learned quantities (PD
-%   parameters, endpoints, estimated delays) are frozen and the second half is
-%   predicted with no further adaptation, driven only by the drug infusions.
-%   Freezing restores a parameter snapshot after every sample past the split, so
-%   each model still uses its own prediction code.
+%   normally on the first half. Past the split the loop calls PREDICT_SAMPLE,
+%   which takes no BIS, so nothing adapts on the held-out half.
 %
 %   q scales every model's process noise as Q = q * S (see PARAM_SCALES), which
 %   makes one scalar comparable across models of different dimension.
@@ -45,8 +42,7 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N)
             if (n - T_split) < 50, continue; end
 
             p_pop = nan(n,1); p_1d = nan(n,1); p_2d = nan(n,1); p_3d = nan(n,1); p_4d = nan(n,1);
-            snap = [];
-            for k = 1:n
+            for k = 1:T_split
                 [p_4d(k), ~, p_1d(k), p_3d(k), p_2d(k), processor] = process_sample( ...
                     processor, time(k), bis(k), prop_rate(k), remi_rate(k));
                 if processor.initialized
@@ -54,11 +50,10 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N)
                     CeR = processor.effect_site_R.Ce_delayed_output;
                     p_pop(k) = predict_bis_population(cfg.population_params_van, CeP, CeR, cfg.E0_fixed, 'vanluchene', cfg.BISmin_fixed);
                 end
-                if k == T_split
-                    snap = grab(processor);
-                elseif k > T_split && ~isempty(snap)
-                    processor = restore(processor, snap);
-                end
+            end
+            for k = (T_split+1):n
+                [p_4d(k), ~, p_1d(k), p_3d(k), p_2d(k), p_pop(k), processor] = ...
+                    predict_sample(processor, time(k), prop_rate(k), remi_rate(k));
             end
 
             vi_in  = k0:T_split;
@@ -80,26 +75,4 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N)
     end
 
     out.q = q; out.mae_in = mae_in; out.mae_out = mae_out; out.split_frac = split_frac;
-end
-
-function s = grab(p)
-    s.k1d    = p.ekf_k.k;
-    s.m2d    = p.ekf_2d_fim.current_params;
-    s.log3d  = p.ekf_loglin.current_params;
-    s.van4d  = p.ekf_van.current_params;
-    s.E0     = p.E0.x;
-    s.BISmin = p.BISmin.x;
-    s.tauP   = p.effect_site_P.tau_d;
-    s.tauR   = p.effect_site_R.tau_d;
-end
-
-function p = restore(p, s)
-    p.ekf_k.k                   = s.k1d;
-    p.ekf_2d_fim.current_params = s.m2d;
-    p.ekf_loglin.current_params = s.log3d;
-    p.ekf_van.current_params    = s.van4d;
-    p.E0.x                      = s.E0;
-    p.BISmin.x                  = s.BISmin;
-    p.effect_site_P.tau_d       = s.tauP;
-    p.effect_site_R.tau_d       = s.tauR;
 end

@@ -1,13 +1,14 @@
-function [bis_pred, state] = update_ekf_kscale(state, bis_obs, CeP, CeR, E0, BISmin_fixed, cfg, Cp_P, Cp_R)
+function [bis_pred, state] = update_ekf_kscale(state, bis_obs, CeP, CeR, E0, BISmin, cfg, ...
+                                               learning_enabled, Rmult, Cp_P, Cp_R)
 
     state.sample_count = state.sample_count + 1;
-    
-    k  = state.k;
-    Pk = state.P; 
 
-    bis_pred = predict_bis_1d_internal(k, CeP, CeR, E0, BISmin_fixed, state);
-    
-    if CeP < 0.5 && CeR < 0.001
+    k  = state.k;
+    Pk = state.P;
+
+    bis_pred = predict_bis_1d_internal(k, CeP, CeR, E0, BISmin, state);
+
+    if ~learning_enabled || (CeP < 0.5 && CeR < 0.001)
         state.k_hist(end+1,1) = k;
         state.P_hist(end+1,1) = Pk;
         return;
@@ -22,7 +23,7 @@ function [bis_pred, state] = update_ekf_kscale(state, bis_obs, CeP, CeR, E0, BIS
         dk_step = -dk_step;
     end
     
-    y_plus = predict_bis_1d_internal(k_test, CeP, CeR, E0, BISmin_fixed, state);
+    y_plus = predict_bis_1d_internal(k_test, CeP, CeR, E0, BISmin, state);
     
     Hk = (y_plus - bis_pred) / dk_step;
     
@@ -33,7 +34,7 @@ function [bis_pred, state] = update_ekf_kscale(state, bis_obs, CeP, CeR, E0, BIS
     C50R_curr = state.C50R_pop / k;
     diseq_mag = abs(diseq_P)/max(C50P_curr, 0.1) + abs(diseq_R)*1000/max(C50R_curr, 0.1);
     
-    R_curr = state.R_base * (1 + state.R_diseq * diseq_mag^2);
+    R_curr = Rmult * state.R_base * (1 + state.R_diseq * diseq_mag^2);
     
     if abs(Hk) < 1e-4
         state.P = min(Pk + state.Q, 0.5^2);
