@@ -10,7 +10,7 @@ function state = init_ekf_kscale(cfg)
 
     state.k        = 1.0;
     state.P        = 0.20^2;
-    state.Q        = (0.002)^2;
+    state.Q        = cfg.q * state.P;
     state.R_base   = cfg.R_base;
     state.R_diseq  = cfg.R_disequilibrium_factor;
 

@@ -9,7 +9,6 @@ DATA_FILE  = P.data_file;
 valid_pids = P.cohort;
 review_dir = P.outdir;
 
-Q_scale = getfield(param_scales(), 'm4d');
 q_grid  = [0, 1e-3, 1e-2, 1e-1, 1, 10];
 
 N = get_patient_count(DATA_FILE);
@@ -18,15 +17,14 @@ mae   = nan(N, nq);
 drift = nan(N, nq);
 
 for j = 1:nq
-    Qj = q_grid(j) * Q_scale;
     fprintf('\n===== Q sweep point %d/%d: q = %.0e =====\n', j, nq, q_grid(j));
     t0 = tic;
-    [mae(:,j), drift(:,j)] = run_cohort_van(cfg, Qj, DATA_FILE, N);
+    [mae(:,j), drift(:,j)] = run_cohort_van(cfg, q_grid(j), DATA_FILE, N);
     fprintf('q = %.0e : cohort 4D MAE mean %.3f median %.3f (N=%d) in %.0f s\n', ...
         q_grid(j), mean(mae(valid_pids,j),'omitnan'), median(mae(valid_pids,j),'omitnan'), ...
         sum(~isnan(mae(valid_pids,j))), toc(t0));
 
-    sweep = struct('q_grid', q_grid, 'Q_scale', Q_scale, ...
+    sweep = struct('q_grid', q_grid, ...
                    'valid_pids', valid_pids, 'mae', mae, 'drift', drift);
     prov = provenance_stamp(cfg, DATA_FILE);
     save(fullfile(review_dir, 'q_sweep_4d.mat'), 'sweep', 'prov');

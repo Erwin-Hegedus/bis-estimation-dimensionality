@@ -4,11 +4,12 @@ function ekf = init_ekf_2d(cfg)
     
     % Covariance in NATURAL coordinates (FIM-whitened)
     ekf.P = diag([0.3^2, 0.3^2]);
-    ekf.Q = diag([0.001^2, 0.001^2]);  % Small process noise
+    ekf.Q = cfg.q * ekf.P;
     
     % FIM accumulation
     ekf.FIM = zeros(2, 2);
-    ekf.FIM_forgetting = 0.995;
+    ekf.FIM_forgetting = cfg.fim_forgetting;
+    ekf.ident_eigenvalue_ratio = cfg.ident_eigenvalue_ratio;
     
     % Natural gradient parameters
     ekf.lambda_ridge = 0.01;  % Tikhonov regularization

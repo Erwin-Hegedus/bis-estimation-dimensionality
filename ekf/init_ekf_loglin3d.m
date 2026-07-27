@@ -5,15 +5,15 @@ function state = init_ekf_loglin3d(cfg)
     state.sample_count = 0;
     
     state.P = diag([1.0, 0.5, 0.1].^2);
-    state.Q = diag([0.005, 0.002, 0.0005].^2);
+    state.Q = cfg.q * state.P;
     
     state.P_min = [0.01, 0.005, 0.001];
     state.P_max = [1.0, 0.5, 0.1];
     
     % FIM for identifiability
     state.FIM = zeros(3, 3);
-    state.FIM_forgetting = 0.995;
-    state.ident_eigenvalue_ratio = 0.01;
+    state.FIM_forgetting = cfg.fim_forgetting;
+    state.ident_eigenvalue_ratio = cfg.ident_eigenvalue_ratio;
     state.FIM_condition = Inf;
     state.projection_count = 0;
     

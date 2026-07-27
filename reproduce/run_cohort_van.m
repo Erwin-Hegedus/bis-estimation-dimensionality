@@ -1,11 +1,11 @@
-function [mae_van, drift_van] = run_cohort_van(cfg, Q_van, DATA_FILE, N)
+function [mae_van, drift_van] = run_cohort_van(cfg, q, DATA_FILE, N)
 %RUN_COHORT_VAN  4D Bouillon MAE and parameter drift over the cohort.
-%   Runs only the 4D model with process noise Q_van and returns per-patient MAE
-%   and drift, the parameter standard deviation over the case normalized by each
-%   parameter's initial standard deviation (see PARAM_SCALES).
+%   Runs only the 4D model with process noise Q = q * P0 and returns per-patient
+%   MAE and drift, the parameter standard deviation over the case normalized by
+%   each parameter's initial standard deviation (see PARAM_SCALES).
 
     S = param_scales();
-    cfg.Q_van = Q_van;
+    cfg.q = q;
     mae_van   = nan(N, 1);
     drift_van = nan(N, 1);
     scale = S.sd_4d;

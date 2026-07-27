@@ -9,8 +9,7 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N)
 %
 %   Returns per-patient in-sample and held-out MAE, and the split fraction.
 
-    S = param_scales();
-    cfg.Q_van = q * S.m4d;
+    cfg.q = q;
 
     names = {'pop','k1d','m2d','loglin3d','van4d'};
     for f = names
@@ -33,9 +32,6 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N)
                 bis, prop_rate_raw, remi_rate_raw, time, 0.3/60);
 
             processor = init_processor(cfg, time(1), pk_prop, pk_remi, demo);
-            processor.ekf_k.Q      = q * S.m1d;
-            processor.ekf_2d_fim.Q = q * S.m2d;
-            processor.ekf_loglin.Q = q * S.m3d;
 
             k0 = max(1, processor.online.initialization_samples);
             T_split = k0 + floor((n - k0) / 2);

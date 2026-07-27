@@ -15,7 +15,8 @@ if ~exist(DATA_FILE, 'file'); error('Data file %s not found.', DATA_FILE); end
 
 % ================= CORE CONFIG =====================
 cfg.ke0P = 0.456;  % Schnider population (DO NOT inflate)
-cfg.ke0R = 0.595;  % Minto population
+cfg.ke0R = 0.595;  % Minto, at the reference age of 40
+cfg.q = 1e-4;      % process noise scale; every estimator uses Q = cfg.q * P0
 cfg.BISmin_fixed = 30;
 cfg.E0_fixed = 93;
 cfg.bis_delay = 25;  % samples at 1 Hz, BIS monitor smoothing lag
@@ -42,30 +43,26 @@ cfg.P_max = [4.0, 9.0, 1.5, 0.5];
 
 cfg.param_rate_max = [0.02, 0.05, 0.01, 0.005];
 
-cfg.fim_condition_threshold = 100;
-cfg.fim_eigenvalue_floor = 1e-6;
 cfg.fim_forgetting = 0.995;
+cfg.ident_eigenvalue_ratio = 0.01;  % FIM directions below this fraction of lambda_1 are projected out
 
 cfg.R_base = 400;
 cfg.R_disequilibrium_factor = 0;
 
-cfg.pk.prop = struct('V1',4.27,'V2',18.9,'V3',238,'CL',1.89,'Q2',1.29,'Q3',0.836,'input_conc',20);
-cfg.pk.remi = struct('V1',5.1,'V2',9.82,'V3',5.42,'CL',2.6,'Q2',2.05,'Q3',0.076,'input_conc',0.02);
+cfg.pk.prop = struct('V1',4.27,'V2',18.9,'V3',238,'CL',1.89,'Q2',1.29,'Q3',0.836,'input_conc',20,'ke0',cfg.ke0P);
+cfg.pk.remi = struct('V1',5.1,'V2',9.82,'V3',5.42,'CL',2.6,'Q2',2.05,'Q3',0.076,'input_conc',0.02,'ke0',cfg.ke0R);
 
 cfg.target_band = [40,60];
-cfg.min_Ce_for_learning = 0.1;
+cfg.min_drug_effect = 0.15;  % minimum CeP/C50P + 1000*CeR/C50R for a sample to inform
 cfg.online = struct('initialization_samples',10);
 cfg.artifact = struct('bis_min',0,'bis_max',100,'bis_jump_thresh',25,'bis_rate_thresh',15);
-% Fisher Information Thresholds
-cfg.fisher_threshold = [5; 5; 4; 3];
-cfg.identifiability_threshold = 0.15;
 cfg.R_floor = 80;
 
 % ke0 Estimator Config
 cfg.ke0_estimator = struct('lambda', 0.1, 'Q_ke0', (0.002/60)^2, 'adapt_window_min', 15);
 
 fprintf('=== ONLINE BIS ANALYSIS V6.0 (Convergent Estimator) ===\n');
-fprintf('Key Changes: Q=0, FIM Identifiability, Covariance Bounds, Rate Limiting\n');
+fprintf('Process noise: Q = q * P0 for every model, q = %.0e\n', cfg.q);
 fprintf('Models: 0D (Pop), 1D (k_scale), 2D (kP,kR), 3D (LogLin), 4D (Vanluchene)\n');
 
 %% ======================= Main Processing Loop ===========================
@@ -234,6 +231,8 @@ for c = 1:numel(cohort)
         results.raw(i).FIM_eig_hist = FIM_eig_hist;
         results.raw(i).FIM_final = processor.ekf_van.FIM;
         results.raw(i).FIM_final_gre = processor.ekf_gre.FIM;
+        results.raw(i).FIM_cum = processor.ekf_van.FIM_cum;
+        results.raw(i).FIM_cum_gre = processor.ekf_gre.FIM_cum;
         results.raw(i).BISmin_trajectory = BISmin_trajectory(:);
         results.raw(i).E0_trajectory = E0_trajectory(:);
         results.raw(i).k_trajectory = k_trajectory(:);

@@ -17,21 +17,16 @@ function state = init_ekf_4d(cfg, model)
     state.P_min = [0.01, 0.02, 0.005, 0.002];
     state.P_max = [2.0, 5.0, 0.8, 0.25];
     
-    if strcmpi(model, 'vanluchene') && isfield(cfg, 'Q_van')
-        state.Q = cfg.Q_van;
-    else
-        state.Q = zeros(4, 4);
-    end
-    
+    state.Q = cfg.q * state.P;
+
     state.FIM = zeros(4, 4);
-    state.FIM_forgetting = 0.995;
+    state.FIM_cum = zeros(4, 4);
+    state.FIM_forgetting = cfg.fim_forgetting;
     state.FIM_condition = 1;
     state.FIM_eigenvalues = zeros(4, 1);
-    state.FIM_eigenvectors = eye(4);
-    
-    state.ident_eigenvalue_ratio = 0.01;
-    state.ident_condition_threshold = 100;
-    
+
+    state.ident_eigenvalue_ratio = cfg.ident_eigenvalue_ratio;
+
     state.param_rate_max = [0.003, 0.008, 0.002, 0.001];
     
     state.R_base = cfg.R_base;

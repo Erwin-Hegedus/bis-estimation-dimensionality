@@ -10,7 +10,7 @@ function out = run_cohort_allmodels(cfg, q, DATA_FILE, N, save_pids)
 %   Trajectories are retained for the patient indices listed in save_pids.
 
     S = param_scales();
-    cfg.Q_van = q * S.m4d;
+    cfg.q = q;
 
     names = {'pop','k1d','m2d','loglin3d','van4d'};
     mae   = struct(); rough = struct();
@@ -31,9 +31,6 @@ function out = run_cohort_allmodels(cfg, q, DATA_FILE, N, save_pids)
                 bis, prop_rate_raw, remi_rate_raw, time, 0.3/60);
 
             processor = init_processor(cfg, time(1), pk_prop, pk_remi, demo);
-            processor.ekf_k.Q       = q * S.m1d;
-            processor.ekf_2d_fim.Q  = q * S.m2d;
-            processor.ekf_loglin.Q  = q * S.m3d;
 
             p_pop = nan(n,1); p_1d = nan(n,1); p_2d = nan(n,1); p_3d = nan(n,1); p_4d = nan(n,1);
             th1 = nan(1,n); th2 = nan(2,n); th3 = nan(3,n); th4 = nan(4,n);

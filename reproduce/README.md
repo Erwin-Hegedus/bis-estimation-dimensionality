@@ -25,6 +25,7 @@ Results are written to `reproduce/output/`.
 | `run_q_sweep_4d.m` | 4D MAE and parameter drift against process-noise scale `q` | ~6 x 15 min |
 | `run_allmodels_sweep.m` | all five models against `q`, in-sample | ~n_q x 15 min |
 | `run_holdout_sweep.m` | held-out split: adapt on the first half of each case, freeze, predict the second | ~n_q x 15 min |
+| `run_bismin_sweep.m` | held-out accuracy against the fixed lower asymptote `BISmin` | ~8 x 15 min |
 
 Each of the four is a driver over a cohort function of the same name prefix
 (`run_cohort_van`, `run_cohort_allmodels`, `run_cohort_holdout`), which loop the
@@ -41,5 +42,7 @@ not a driver.
 - Cases shorter than 900 samples are excluded, as in `run_analysis.m`.
 - A case that raises an error is reported with its index and message; it is not
   silently dropped.
-- The per-model covariance scales used to build `Q = q * S` live in
-  `param_scales.m`, so the sweeps and the holdout cannot drift apart.
+- Every estimator sets `Q = cfg.q * P0` from its own initial covariance, so the
+  single dimensionless scalar `cfg.q` means the same thing for all of them. The
+  sweeps set `cfg.q` and nothing else; `param_scales.m` holds only the initial
+  standard deviations, used to normalize parameter drift and roughness.
