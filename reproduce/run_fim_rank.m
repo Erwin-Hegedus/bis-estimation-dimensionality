@@ -51,5 +51,6 @@ fprintf('  lambda_1+lambda_2 share             : %.2f%%\n', 100*median(share12,'
 fprintf('  lambda_2 / lambda_3                 : %.0f\n', median(gap23,'omitnan'));
 fprintf('  median eigenvalues                  : [%.4g %.4g %.4g %.4g]\n', median(lam,1,'omitnan'));
 
-save(fullfile(P.outdir,'fim_rank.mat'), 'rank_raw', 'lam', 'share1', 'share12', 'gap23', 'coh', 'RHO');
+prov = provenance_stamp(cfg, P.data_file);
+save(fullfile(P.outdir,'fim_rank.mat'), 'rank_raw', 'lam', 'share1', 'share12', 'gap23', 'coh', 'RHO', 'prov');
 fprintf('\nSaved %s\n', fullfile(P.outdir,'fim_rank.mat'));

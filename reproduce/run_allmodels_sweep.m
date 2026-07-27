@@ -35,7 +35,8 @@ for j = 1:nq
         rough_med.van4d(j), toc(t0));
     sweep = struct('q_grid', q_grid, 'valid_pids', valid_pids, 'mae_med', mae_med, ...
                    'rough_med', rough_med, 'mae_pop', mae_pop, 'res', {res});
-    save(fullfile(review_dir, 'allmodels_sweep.mat'), 'sweep', '-v7.3');
+    prov = provenance_stamp(cfg, DATA_FILE);
+    save(fullfile(review_dir, 'allmodels_sweep.mat'), 'sweep', 'prov', '-v7.3');
 end
 
 fprintf('\n=== in-sample MAE vs q (cohort mean) ===\n');
@@ -70,5 +71,5 @@ title('(b) Overfitting signature (roughness)', 'FontSize', 15, 'FontWeight', 'bo
 legend('Location','best','FontSize',12);
 
 sgtitle('All-model Q sweep (N=209): does adaptation lower MAE by overfitting?', 'FontSize', 16, 'FontWeight', 'bold');
-exportgraphics(fig, fullfile(review_dir, 'figure_allmodels_sweep.png'), 'Resolution', 300);
+export_figure_png(fig, fullfile(review_dir, 'figure_allmodels_sweep.png'));
 fprintf('Saved allmodels_sweep.mat and figure_allmodels_sweep.png\n');

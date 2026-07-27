@@ -114,5 +114,5 @@ function plot_2d_comparison(results, patient_id, cfg, fig_dir)
     sgtitle(sprintf('2D Model (kP, kR) Diagnostic - Patient %d\nQuestion: Does separate P/R sensitivity improve fit?', patient_id), ...
         'FontSize', 12);
     
-    print(gcf, fullfile(fig_dir, sprintf('2d_analysis_patient_%d.png', patient_id)), '-dpng', '-r150');
+    export_figure_png(gcf, fullfile(fig_dir, sprintf('2d_analysis_patient_%d.png', patient_id)));
 end

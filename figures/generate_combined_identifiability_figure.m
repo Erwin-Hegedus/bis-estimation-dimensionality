@@ -124,7 +124,7 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
 
     xlabel('Parameter k (1D Model)');
     ylabel('MAE (BIS)');
-    title(sprintf('(c) 1D error landscape (%d samples)', n_t), 'FontSize', 12, 'FontWeight', 'bold');
+    title('(c) 1D error landscape', 'FontSize', 12, 'FontWeight', 'bold');
     grid on; axis tight;
 
     % =====================================================================
@@ -156,13 +156,14 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
 
     xlabel('Parameter k_P');
     ylabel('Parameter k_R');
-    title(sprintf('(d) 2D error landscape (%d samples)', n_t), 'FontSize', 12, 'FontWeight', 'bold');
+    title('(d) 2D error landscape', 'FontSize', 12, 'FontWeight', 'bold');
     axis square;
     legend('Location','NorthEast','FontSize',8);
 
     % --- SAVE ---
     if ~exist(fig_dir, 'dir'), mkdir(fig_dir); end
-    saveas(fig, fullfile(fig_dir, 'figure7_combined_identifiability.png'));
-    saveas(fig, fullfile(fig_dir, 'figure7_combined_identifiability.fig'));
+    apply_figure_style(fig);
+    savefig(fig, fullfile(fig_dir, 'figure7_combined_identifiability.fig'));
+    export_figure_png(fig, fullfile(fig_dir, 'figure7_combined_identifiability.png'));
     fprintf('Saved: figure7_combined_identifiability.png\n');
 end

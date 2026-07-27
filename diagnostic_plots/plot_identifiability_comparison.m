@@ -95,6 +95,6 @@ function plot_identifiability_comparison(results, fig_dir)
         'Adding parameters beyond 1D provides negligible improvement'], N), ...
         'FontSize', 14, 'FontWeight', 'bold');
     
-    print(gcf, fullfile(fig_dir, 'identifiability_comparison.png'), '-dpng', '-r150');
+    export_figure_png(gcf, fullfile(fig_dir, 'identifiability_comparison.png'));
     savefig(gcf, fullfile(fig_dir, 'identifiability_comparison.fig'));
 end

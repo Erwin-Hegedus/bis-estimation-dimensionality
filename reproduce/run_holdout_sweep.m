@@ -36,7 +36,8 @@ for j = 1:nq
     fprintf('q=%.0e  OUT: 1D %.3f 2D %.3f 3D %.3f 4D %.3f pop %.3f   (%.0f s)\n', q_grid(j), ...
         OUT.k1d(j), OUT.m2d(j), OUT.loglin3d(j), OUT.van4d(j), OUT.pop(j), toc(t0));
     holdout = struct('q_grid', q_grid, 'valid_pids', valid_pids, 'IN', IN, 'OUT', OUT, 'res', {res});
-    save(fullfile(review_dir, ['holdout_sweep' out_tag '.mat']), 'holdout', '-v7.3');
+    prov = provenance_stamp(cfg, DATA_FILE);
+    save(fullfile(review_dir, ['holdout_sweep' out_tag '.mat']), 'holdout', 'prov', '-v7.3');
 end
 
 fprintf('\n=== SUMMARY: in-sample (first half, adapting) vs holdout (second half, frozen) ===\n');
@@ -75,5 +76,5 @@ title('(b) Held-out second half (frozen)', 'FontSize', 15, 'FontWeight', 'bold')
 legend('Location','best','FontSize',12);
 
 sgtitle('Out-of-sample test: does lower in-sample error transfer?', 'FontSize', 16, 'FontWeight', 'bold');
-exportgraphics(fig, fullfile(review_dir, ['figure_holdout_sweep' out_tag '.png']), 'Resolution', 300);
+export_figure_png(fig, fullfile(review_dir, ['figure_holdout_sweep' out_tag '.png']));
 fprintf('Saved holdout_sweep.mat and figure_holdout_sweep.png\n');

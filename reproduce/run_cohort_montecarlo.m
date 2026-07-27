@@ -50,7 +50,8 @@ if ~isempty(i105)
             100 * coh.frac(i105), 100 * coh.radius_norm(i105));
 end
 
-save(fullfile(review_dir, 'cohort_montecarlo.mat'), 'coh');
+prov = provenance_stamp(S.cfg, P.data_file, 42);
+save(fullfile(review_dir, 'cohort_montecarlo.mat'), 'coh', 'prov');
 fprintf('Saved: %s\n', fullfile(review_dir, 'cohort_montecarlo.mat'));
 
 % ---- Figure: distribution across the cohort, Patient 105 marked ----------
@@ -83,5 +84,5 @@ set(gca, 'FontSize', 12); grid on;
 sgtitle('Cohort-wide Monte Carlo equivalence (N=209)', 'FontSize', 16, 'FontWeight', 'bold');
 
 fig_png = fullfile(review_dir, 'figure_cohort_montecarlo.png');
-exportgraphics(fig, fig_png, 'Resolution', 300);
+export_figure_png(fig, fig_png);
 fprintf('Saved: %s\n', fig_png);

@@ -103,6 +103,6 @@ function plot_1d_vs_2d(results, patient_id, fig_dir)
     sgtitle(sprintf('1D vs 2D Model Comparison - Patient %d', patient_id), ...
         'FontSize', 14, 'FontWeight', 'bold');
     
-    print(gcf, fullfile(fig_dir, sprintf('1d_vs_2d_representative_%d.png', patient_id)), '-dpng', '-r150');
+    export_figure_png(gcf, fullfile(fig_dir, sprintf('1d_vs_2d_representative_%d.png', patient_id)));
     savefig(gcf, fullfile(fig_dir, sprintf('1d_vs_2d_representative_%d.fig', patient_id)));
 end

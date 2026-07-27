@@ -81,7 +81,7 @@ function param_stats = plot_parameter_clustering_boxplots(results, fig_dir)
     ylim([y_min, y_max]);
     grid on;
     
-    print(gcf, fullfile(fig_dir, 'figure_param_boxplots_1d2d.png'), '-dpng', '-r300');
+    export_figure_png(gcf, fullfile(fig_dir, 'figure_param_boxplots_1d2d.png'));
     savefig(gcf, fullfile(fig_dir, 'figure_param_boxplots_1d2d.fig'));
     
     %% ==================== FIGURE 2: 3D MODEL (separate) ====================
@@ -97,7 +97,7 @@ function param_stats = plot_parameter_clustering_boxplots(results, fig_dir)
     title('3D Log-Linear Model', 'FontSize', 12);
     grid on;
     
-    print(gcf, fullfile(fig_dir, 'figure_param_boxplots_3d.png'), '-dpng', '-r300');
+    export_figure_png(gcf, fullfile(fig_dir, 'figure_param_boxplots_3d.png'));
     savefig(gcf, fullfile(fig_dir, 'figure_param_boxplots_3d.fig'));
     
     %% ==================== CONSOLE SUMMARY ====================

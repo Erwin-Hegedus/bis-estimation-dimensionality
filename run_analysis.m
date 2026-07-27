@@ -233,6 +233,7 @@ for c = 1:numel(cohort)
         results.raw(i).FIM_cond_hist = FIM_cond_hist(:);
         results.raw(i).FIM_eig_hist = FIM_eig_hist;
         results.raw(i).FIM_final = processor.ekf_van.FIM;
+        results.raw(i).FIM_final_gre = processor.ekf_gre.FIM;
         results.raw(i).BISmin_trajectory = BISmin_trajectory(:);
         results.raw(i).E0_trajectory = E0_trajectory(:);
         results.raw(i).k_trajectory = k_trajectory(:);
@@ -282,7 +283,8 @@ if ~isempty(results.fail_ids)
     error('%d of %d cohort cases failed: %s', ...
         numel(results.fail_ids), numel(cohort), mat2str(results.fail_ids));
 end
-save(fullfile(results_dir, 'bis_analysis_results_v6_0.mat'), 'results', 'cfg', '-v7.3');
+prov = provenance_stamp(cfg, DATA_FILE);
+save(fullfile(results_dir, 'bis_analysis_results_v6_0.mat'), 'results', 'cfg', 'prov', '-v7.3');
 %% =============== PARAMETER MULTIPLICITY ANALYSIS ==========
 pid_test = 105;
 eq_info = monte_carlo_equivalence_radius(results, pid_test, cfg);
@@ -363,5 +365,6 @@ generate_table5_equivalent_params(eq_info, pid_test, fig_dir);
 fprintf('\n=== PERSONALIZATION SPEED ANALYSIS ===\n');
 report_personalization_stats(results);
 generate_simulation_summary(results, cfg);
-save(fullfile(results_dir, 'bis_analysis_results_v6_0.mat'), 'results', 'cfg', 'eq_info', 'pid_test', '-v7.3');
+prov = provenance_stamp(cfg, DATA_FILE);
+save(fullfile(results_dir, 'bis_analysis_results_v6_0.mat'), 'results', 'cfg', 'eq_info', 'pid_test', 'prov', '-v7.3');
 fprintf('\nV6.0 (Rigorous Estimator) Analysis complete. Results saved.\n');

@@ -28,7 +28,8 @@ for j = 1:nq
 
     sweep = struct('q_grid', q_grid, 'Q_scale', Q_scale, ...
                    'valid_pids', valid_pids, 'mae', mae, 'drift', drift);
-    save(fullfile(review_dir, 'q_sweep_4d.mat'), 'sweep');
+    prov = provenance_stamp(cfg, DATA_FILE);
+    save(fullfile(review_dir, 'q_sweep_4d.mat'), 'sweep', 'prov');
 end
 
 mae_med  = median(mae(valid_pids,:), 1, 'omitnan');
@@ -57,5 +58,5 @@ title('(b) Parameter drift vs adaptation', 'FontSize', 15, 'FontWeight', 'bold')
 set(gca,'FontSize',12); grid on;
 
 sgtitle('4D Q-sweep (N=209)', 'FontSize', 16, 'FontWeight', 'bold');
-exportgraphics(fig, fullfile(review_dir, 'figure_q_sweep_4d.png'), 'Resolution', 300);
+export_figure_png(fig, fullfile(review_dir, 'figure_q_sweep_4d.png'));
 fprintf('Saved: %s and figure_q_sweep_4d.png\n', fullfile(review_dir, 'q_sweep_4d.mat'));

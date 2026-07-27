@@ -93,5 +93,6 @@ for d = {'B','A'}
     fprintf('maintenance spread, excluding 3D:    %.2f BIS\n', max(v3) - min(v3));
 end
 
-save(fullfile(P.outdir, 'phase_split.mat'), 'mae', 'ind_share', 'caselen', 'cohort', 'models', 'label');
+prov = provenance_stamp(P.cfg, P.data_file);
+save(fullfile(P.outdir, 'phase_split.mat'), 'mae', 'ind_share', 'caselen', 'cohort', 'models', 'label', 'prov');
 fprintf('\nSaved %s\n', fullfile(P.outdir, 'phase_split.mat'));
