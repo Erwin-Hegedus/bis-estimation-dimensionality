@@ -25,17 +25,21 @@ function [pk_prop, pk_remi] = pk_from_demographics_schnider_minto(demo, cfg)
     pk_prop.Q2 = max(Q2, 0.2);
     pk_prop.Q3 = Q3;
     
+    % Minto (1997), referenced to age 40 and LBM 55.
     pk_remi = cfg.pk.remi;
-    V1r = 5.1;
-    V2r = 9.82 - 0.0811 * (age - 40);
+    V1r = 5.1  - 0.0201 * (age - 40) + 0.072 * (LBM - 55);
+    V2r = 9.82 - 0.0811 * (age - 40) + 0.108 * (LBM - 55);
     V3r = 5.42;
-    CLr = 2.6 - 0.0162 * (age - 40) + 0.0191 * (LBM - 55);
+    CLr = 2.6  - 0.0162 * (age - 40) + 0.0191 * (LBM - 55);
     Q2r = 2.05 - 0.0301 * (age - 40);
-    Q3r = 0.076;
-    pk_remi.V1 = V1r;
+    Q3r = 0.076 - 0.00113 * (age - 40);
+    pk_remi.V1 = max(V1r, 1.0);
     pk_remi.V2 = max(V2r, 3);
     pk_remi.V3 = V3r;
     pk_remi.CL = max(CLr, 0.5);
     pk_remi.Q2 = max(Q2r, 0.3);
-    pk_remi.Q3 = Q3r;
+    pk_remi.Q3 = max(Q3r, 0.01);
+
+    pk_prop.ke0 = cfg.ke0P;
+    pk_remi.ke0 = max(cfg.ke0R - 0.007 * (age - 40), 0.1);
 end

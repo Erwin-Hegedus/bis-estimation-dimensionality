@@ -16,12 +16,12 @@ function processor = init_processor(cfg, start_time, pk_prop, pk_remi, ~)
     processor.personalization.baseline_van = [];
     processor.personalization.baseline_gre = [];
     
-    processor.effect_site_P = init_effect_site(cfg.ke0P, cfg.bis_delay);
-    processor.effect_site_R = init_effect_site(cfg.ke0R, cfg.bis_delay);
-    
-    
     if nargin < 3 || isempty(pk_prop), pk_prop = cfg.pk.prop; end
     if nargin < 4 || isempty(pk_remi), pk_remi = cfg.pk.remi; end
+
+    processor.effect_site_P = init_effect_site(pk_prop.ke0, cfg.bis_delay);
+    processor.effect_site_R = init_effect_site(pk_remi.ke0, cfg.bis_delay);
+
     processor.pk_state_P = init_pk_state_online(pk_prop);
     processor.pk_state_R = init_pk_state_online(pk_remi);
     
