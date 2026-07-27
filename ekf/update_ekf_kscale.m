@@ -8,7 +8,7 @@ function [bis_pred, state] = update_ekf_kscale(state, bis_obs, CeP, CeR, E0, BIS
 
     bis_pred = predict_bis_1d_internal(k, CeP, CeR, E0, BISmin, state);
 
-    if ~learning_enabled || (CeP < 0.5 && CeR < 0.001)
+    if ~learning_enabled
         state.k_hist(end+1,1) = k;
         state.P_hist(end+1,1) = Pk;
         return;

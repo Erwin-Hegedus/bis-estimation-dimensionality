@@ -9,8 +9,7 @@ function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, B
     state.param_hist(end+1, :) = state.current_params';
     state.P_hist(end+1, :) = diag(state.P)';
     
-    % Skip if the sample is gated out or concentrations are too low to inform
-    if ~learning_enabled || (CeP < 0.5 && CeR < 0.001)
+    if ~learning_enabled
         return;
     end
     

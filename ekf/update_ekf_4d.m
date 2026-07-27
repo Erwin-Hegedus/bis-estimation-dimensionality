@@ -8,11 +8,10 @@ function [bis_pred, state] = update_ekf_4d(...
 
     bis_pred = predict_bis_4d(x, CeP, CeR, E0, BISmin, model);
 
-    u_total = CeP / C50P + CeR * 1000 / C50R;
-    if ~learning_enabled || u_total < 0.15
+    if ~learning_enabled
         return;
     end
-    
+
     H = jacobian_4d(x, CeP, CeR, E0, BISmin, model);
     
     diseq_P = Cp_P - CeP;
@@ -20,15 +19,16 @@ function [bis_pred, state] = update_ekf_4d(...
     diseq_magnitude = abs(diseq_P)/max(C50P,0.1) + abs(diseq_R)*1000/max(C50R,0.1);
     R = Rmult * state.R_base * (1 + state.R_disequilibrium_factor * diseq_magnitude^2);
     
-    state.FIM = state.FIM_forgetting * state.FIM + (H' * H) / R;
-    
+    info = (H' * H) / R;
+    state.FIM = state.FIM_forgetting * state.FIM + info;
+    state.FIM_cum = state.FIM_cum + info;
+
     [V, D] = eig(state.FIM);
     eigenvalues = diag(D);
     [eigenvalues_sorted, sort_idx] = sort(real(eigenvalues), 'descend');
     V_sorted = V(:, sort_idx);
     
     state.FIM_eigenvalues = eigenvalues_sorted;
-    state.FIM_eigenvectors = V_sorted;
     state.FIM_condition = eigenvalues_sorted(1) / max(eigenvalues_sorted(end), 1e-12);
     
     lambda_max = eigenvalues_sorted(1);

@@ -37,8 +37,11 @@ function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] 
     BISmin = cfg.BISmin_fixed;
 
     % 7. ESTIMATE PD PARAMETERS
-    learning_enabled = (data_quality <= 2);
-    
+    drug_effect = CeP / cfg.population_params_van(1) ...
+                + CeR * 1000 / cfg.population_params_van(2);
+    learning_enabled = (data_quality <= 2) && (drug_effect >= cfg.min_drug_effect);
+
+
     CpP = processor.pk_state_P.Cp;
     CpR = processor.pk_state_R.Cp;
     ke0P = processor.effect_site_P.ke0;
