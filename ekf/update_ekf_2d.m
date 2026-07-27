@@ -34,7 +34,7 @@ function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
     
     % Identifiability threshold (like 4D)
     lambda_max = eigenvalues_sorted(1);
-    lambda_threshold = 0.01 * lambda_max;  % Same ratio as 4D
+    lambda_threshold = ekf.ident_eigenvalue_ratio * lambda_max;
     identifiable_mask = eigenvalues_sorted > lambda_threshold;
     n_identifiable = sum(identifiable_mask);
     
