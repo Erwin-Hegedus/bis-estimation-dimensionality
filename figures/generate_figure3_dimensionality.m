@@ -57,7 +57,9 @@ function generate_figure3_dimensionality(results, fig_dir)
            'Location', 'northeast', 'FontSize', 11);
     
     xlim([-0.5 4.7]);
-    ylim([4 max(means_main + stds_main) + 1.5]);
+    lo = min([means_main - stds_main, mean(mae_gre) - std(mae_gre)]);
+    hi = max([means_main + stds_main, mean(mae_gre) + std(mae_gre)]);
+    ylim([max(0, lo - 0.5), hi + 1.5]);
     grid on;
     set(gca, 'XTick', 0:4, 'FontSize', 11);
     

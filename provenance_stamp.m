@@ -11,7 +11,7 @@ function prov = provenance_stamp(cfg, data_file, seed)
     prov.git_sha   = git_out(repo, 'rev-parse HEAD');
     prov.git_dirty = ~isempty(git_out(repo, 'status --porcelain'));
     prov.git_desc  = git_out(repo, 'log -1 --format=%s');
-    prov.cfg_hash  = sha256_bytes(getByteStreamFromArray(cfg));
+    prov.cfg_hash  = sha256_bytes(getByteStreamFromArray(sort_fields(cfg)));
     prov.matlab    = version;
     prov.timestamp = datestr(now, 'yyyy-mm-dd HH:MM:SS');
     prov.seed      = seed;
@@ -23,6 +23,20 @@ function prov = provenance_stamp(cfg, data_file, seed)
         prov.data_hash  = sha256_file(data_file);
     else
         prov.data_file = data_file; prov.data_bytes = NaN; prov.data_hash = '';
+    end
+end
+
+function s = sort_fields(s)
+%SORT_FIELDS  Order struct fields alphabetically, recursively.
+%   getByteStreamFromArray serialises fields in declaration order, so without
+%   this two configs that are isequaln hash differently.
+    if ~isstruct(s), return; end
+    s = orderfields(s);
+    f = fieldnames(s);
+    for e = 1:numel(s)
+        for k = 1:numel(f)
+            s(e).(f{k}) = sort_fields(s(e).(f{k}));
+        end
     end
 end
 
