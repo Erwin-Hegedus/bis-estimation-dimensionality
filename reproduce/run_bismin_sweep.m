@@ -24,7 +24,7 @@ for b = bvals
     t0 = tic;
     cfg_b = cfg;
     cfg_b.BISmin_fixed = b;
-    out = run_cohort_holdout(cfg_b, q, DATA_FILE, N);
+    out = run_cohort_holdout(cfg_b, q, DATA_FILE, N, valid_pids);
 
     r = struct('BISmin', b, 'mae_in', out.mae_in, 'mae_out', out.mae_out);
     for m = models
@@ -39,6 +39,35 @@ for b = bvals
     valid = valid_pids;
     prov = provenance_stamp(cfg, DATA_FILE);
     save(fullfile(review_dir, 'bismin_sweep.mat'), 'R', 'bvals', 'q', 'valid', 'prov');
+end
+
+% What the floor costs at the value actually used: no predictor can return less
+% than BISmin, so every observed sample below it carries a one-signed residual.
+canonical = fullfile(P.repo, 'results', 'bis_analysis_results_v6_0.mat');
+if exist(canonical, 'file')
+    C = load(canonical, 'results', 'cfg');
+    b0 = C.cfg.BISmin_fixed;
+    preds = {'pred_kscale','pred_2d','pred_loglin','pred_van','pred_pop'};
+    names = {'1D','2D','3D','4D','pop'};
+    n_tot = 0; n_below = 0; e_all = zeros(1,5); e_below = zeros(1,5);
+    for c = 1:numel(valid_pids)
+        r = C.results.raw(valid_pids(c));
+        if isempty(r.bis), continue; end
+        bis = r.bis(:); below = bis < b0;
+        n_tot = n_tot + numel(bis); n_below = n_below + sum(below);
+        for k = 1:5
+            p = r.(preds{k}); if isempty(p), continue; end
+            e = abs(p(:) - bis); ok = ~isnan(e);
+            e_all(k) = e_all(k) + sum(e(ok));
+            e_below(k) = e_below(k) + sum(e(ok & below));
+        end
+    end
+    fprintf('\n=== cost of the BISmin = %g floor (N=%d) ===\n', b0, numel(valid_pids));
+    fprintf('samples below the floor: %d / %d (%.2f%%)\n', n_below, n_tot, 100*n_below/n_tot);
+    for k = 1:5
+        fprintf('  %-4s %.1f%% of total absolute error lies below the floor\n', ...
+            names{k}, 100*e_below(k)/e_all(k));
+    end
 end
 
 fprintf('\n=== held-out cohort mean MAE vs BISmin (N=%d, q=%.0e) ===\n', numel(valid_pids), q);
