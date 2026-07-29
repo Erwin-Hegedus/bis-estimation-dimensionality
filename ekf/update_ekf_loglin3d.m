@@ -1,5 +1,5 @@
 function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, BISmin, cfg, ...
-                                                 learning_enabled, Rmult, Cp_P, Cp_R)
+                                                 learning_enabled, Rmult)
     state.sample_count = state.sample_count + 1;
     
     [bis_pred, H_sigmoid, xP, xR] = predict_bis_loglin3d( ...
@@ -18,12 +18,9 @@ function [bis_pred, state] = update_ekf_loglin3d(state, bis_obs, CeP, CeR, E0, B
     dBIS_dH = -(E0 - BISmin);
     H_jac = dBIS_dH * dH_dZ * [1, xP, xR];
     
-    % === ADAPTIVE R ===
-    diseq_P = Cp_P - CeP;
-    diseq_R = Cp_R - CeR;
-    diseq_mag = abs(diseq_P)/max(CeP + 0.5, 1) + abs(diseq_R)*1000/max(CeR*1000 + 1, 2);
-    R = Rmult * state.R_base * (1 + state.R_diseq * diseq_mag^2);
-    
+    R = Rmult * state.R_base;
+
+
     % === UPDATE FIM ===
     state.FIM = state.FIM_forgetting * state.FIM + (H_jac' * H_jac) / R;
     

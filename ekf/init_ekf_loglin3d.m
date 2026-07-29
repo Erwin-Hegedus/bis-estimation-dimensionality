@@ -1,4 +1,7 @@
 function state = init_ekf_loglin3d(cfg)
+% Estimated in raw parameters, unlike the 1D, 2D and 4D. a0 is a location
+% parameter in logit space and may be zero or negative, so a fractional step is
+% undefined for it and this filter keeps an additive walk.
     state = struct();
     state.current_params = [0.5; 1.0; 0.2];  % [a0, aP, aR]
     state.initialized = true;
@@ -20,14 +23,13 @@ function state = init_ekf_loglin3d(cfg)
     % Bounds and rate limits
     state.lb = [-5; 0.1; 0.01];
     state.ub = [5; 4; 1];
-    state.param_rate_max = [0.02; 0.01; 0.005];
+    state.param_rate_max = cfg.rate_cap * sqrt(diag(state.P));
     
     state.eps_P = 0.05;
     state.eps_R = 0.0001;
     
     state.R_base = cfg.R_base;
-    state.R_diseq = cfg.R_disequilibrium_factor;
-    
+
     state.param_hist = [];
     state.P_hist = [];
 end

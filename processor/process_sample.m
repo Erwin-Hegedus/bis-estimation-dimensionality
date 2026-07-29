@@ -42,35 +42,28 @@ function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] 
     learning_enabled = (data_quality <= 2) && (drug_effect >= cfg.min_drug_effect);
 
 
-    CpP = processor.pk_state_P.Cp;
-    CpR = processor.pk_state_R.Cp;
-    ke0P = processor.effect_site_P.ke0;
-    ke0R = processor.effect_site_R.ke0;
-    
     [pred_van, processor.ekf_van] = update_ekf_4d(...
         processor.ekf_van, y_eff, CeP, CeR, E0, BISmin, ...
-        'vanluchene', cfg, learning_enabled, Rmult, ...
-        CpP, CpR, ke0P, ke0R);
+        'vanluchene', cfg, learning_enabled, Rmult);
 
     [pred_gre, processor.ekf_gre] = update_ekf_4d(...
         processor.ekf_gre, y_eff, CeP, CeR, E0, BISmin, ...
-        'greco', cfg, learning_enabled, Rmult, ...
-        CpP, CpR, ke0P, ke0R);
+        'greco', cfg, learning_enabled, Rmult);
 
     % 8. UPDATE 1-PARAMETER k_scale MODEL
     [pred_kscale, processor.ekf_k] = update_ekf_kscale( ...
         processor.ekf_k, y_eff, CeP, CeR, E0, BISmin, cfg, ...
-        learning_enabled, Rmult, CpP, CpR);
+        learning_enabled, Rmult);
 
     % 9. UPDATE 3-PARAMETER LOG-LINEAR MODEL
     [pred_loglin, processor.ekf_loglin] = update_ekf_loglin3d( ...
         processor.ekf_loglin, y_eff, CeP, CeR, E0, BISmin, cfg, ...
-        learning_enabled, Rmult, CpP, CpR);
+        learning_enabled, Rmult);
 
     % 10. UPDATE 2-PARAMETER (kP, kR) MODEL
     [pred_2d_fim, processor.ekf_2d_fim] = update_ekf_2d(...
         processor.ekf_2d_fim, y_eff, CeP, CeR, E0, BISmin, ...
-        cfg, learning_enabled, Rmult, CpP, CpR, ke0P, ke0R);
+        cfg, learning_enabled, Rmult);
 
     % Personalization Tracking
     processor = track_personalization_realtime(processor, time_k, cfg);
