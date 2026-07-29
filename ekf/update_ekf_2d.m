@@ -1,5 +1,5 @@
 function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
-                                          learning_enabled, Rmult, CpP, CpR, ke0P, ke0R)
+                                          learning_enabled, Rmult)
 
     kP = ekf.current_params(1);
     kR = ekf.current_params(2);
@@ -10,34 +10,36 @@ function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
     if ~learning_enabled
         return;
     end
-    
+
     % === 1. COMPUTE SENSITIVITY (JACOBIAN) ===
-    H = compute_jacobian_2d(kP, kR, CeP, CeR, E0, BISmin, cfg);  % 1x2
-    
-    % Adaptive measurement noise
-    D_P = abs(CpP - CeP) / max(CeP, 0.5);
-    D_R = abs(CpR*1000 - CeR*1000) / max(CeR*1000, 1);
-    R = Rmult * cfg.R_base * (1 + cfg.R_disequilibrium_factor * (D_P + D_R)^2);
-    
+    % Chain rule to log-parameters: dBIS/dlog(theta) = dBIS/dtheta * theta
+    % kP, kR scale the population C50s, so d/dlog(k) = -d/dlog(C50) of the 4D.
+    p = cfg.population_params_van;
+    theta_eff = [p(1)/kP; p(2)/kR; p(3); p(4)];
+    H4 = jacobian_4d(theta_eff, CeP, CeR, E0, BISmin, 'vanluchene') .* theta_eff';
+    H = -H4(1:2);
+
+    R = Rmult * cfg.R_base;
+
     % === 2. UPDATE FIM (Exponentially Weighted) ===
     outer_product = (H' * H) / R;
-    ekf.FIM = ekf.FIM_forgetting * ekf.FIM + (1 - ekf.FIM_forgetting) * outer_product;
+    ekf.FIM = ekf.FIM_forgetting * ekf.FIM + outer_product;
     ekf.n_updates = ekf.n_updates + 1;
-    
+
     % === 3. EIGENVALUE-BASED PROJECTION (like 4D) ===
     [V, D] = eig(ekf.FIM);
     eigenvalues = diag(D);
     [eigenvalues_sorted, sort_idx] = sort(real(eigenvalues), 'descend');
     V_sorted = V(:, sort_idx);
-    
+
     ekf.FIM_condition = eigenvalues_sorted(1) / max(eigenvalues_sorted(2), 1e-12);
-    
+
     % Identifiability threshold (like 4D)
     lambda_max = eigenvalues_sorted(1);
     lambda_threshold = ekf.ident_eigenvalue_ratio * lambda_max;
     identifiable_mask = eigenvalues_sorted > lambda_threshold;
     n_identifiable = sum(identifiable_mask);
-    
+
     % Build projection matrix
     if n_identifiable > 0 && n_identifiable < 2
         V_ident = V_sorted(:, identifiable_mask);
@@ -47,7 +49,7 @@ function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
     else
         P_proj = eye(2);  % Full update if both identifiable
     end
-    
+
     % === 4. STANDARD EKF UPDATE ===
     innovation = y - pred;
     P_pred = ekf.P + ekf.Q;
@@ -55,13 +57,13 @@ function [pred, ekf] = update_ekf_2d(ekf, y, CeP, CeR, E0, BISmin, cfg, ...
     if S < 1e-6, return; end
     K = P_pred * H' / S;
 
-    % === 5. RATE LIMITING ===
-    delta_theta = max(-ekf.rate_max, min(ekf.rate_max, P_proj * (K * innovation)));
-    
-    % === 6. PARAMETER UPDATE ===
-    ekf.current_params = ekf.current_params + delta_theta;
+    % === 5. RATE LIMITING (fractional, on log-parameters) ===
+    delta_phi = max(-ekf.rate_max, min(ekf.rate_max, P_proj * (K * innovation)));
+
+    % === 6. PARAMETER UPDATE (multiplicative, positive by construction) ===
+    ekf.current_params = ekf.current_params .* exp(delta_phi);
     ekf.current_params = max(ekf.lb, min(ekf.ub, ekf.current_params));
-    
+
     % === 7. COVARIANCE UPDATE ===
     I_KH = eye(2) - K * H;
     P_new = I_KH * P_pred * I_KH' + K * R * K';

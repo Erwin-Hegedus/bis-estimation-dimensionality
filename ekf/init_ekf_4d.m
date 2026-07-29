@@ -1,22 +1,23 @@
 function state = init_ekf_4d(cfg, model)
+% Estimates phi = log([C50P; C50R; gamma; beta]), so the FIM is dimensionless.
+% Dividing the covariances and caps by p0 carries the raw tuning over unchanged.
     state = struct();
     state.model = model;
     state.initialized = true;
     state.sample_count = 0;
-    
+
     if strcmpi(model, 'vanluchene')
         p0 = cfg.population_params_van(:);
     else
         p0 = cfg.population_params_gre(:);
     end
-    
+
     state.current_params = p0;
-    state.theta_prior = p0;
-    
-    state.P = diag([1.0, 1.5, 0.4, 0.15].^2);
-    state.P_min = [0.01, 0.02, 0.005, 0.002];
-    state.P_max = [2.0, 5.0, 0.8, 0.25];
-    
+
+    state.P     = diag(([1.0, 1.5, 0.4, 0.15]' ./ p0).^2);
+    state.P_min = [0.01, 0.02, 0.005, 0.002]' ./ p0.^2;
+    state.P_max = [2.0,  5.0,  0.8,   0.25 ]' ./ p0.^2;
+
     state.Q = cfg.q * state.P;
 
     state.FIM = zeros(4, 4);
@@ -27,11 +28,10 @@ function state = init_ekf_4d(cfg, model)
 
     state.ident_eigenvalue_ratio = cfg.ident_eigenvalue_ratio;
 
-    state.param_rate_max = [0.003, 0.008, 0.002, 0.001];
-    
+    state.param_rate_max = cfg.rate_cap * sqrt(diag(state.P));
+
     state.R_base = cfg.R_base;
-    state.R_disequilibrium_factor = cfg.R_disequilibrium_factor;
-    
+
     state.RSE_current = [];
     state.update_count = 0;
     state.projection_count = 0;

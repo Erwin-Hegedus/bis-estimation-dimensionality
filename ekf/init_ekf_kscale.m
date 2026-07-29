@@ -1,4 +1,5 @@
 function state = init_ekf_kscale(cfg)
+% Estimates phi = log(k); P, Q and rate_max are fractional.
     state = struct();
     state.initialized   = true;
     state.sample_count  = 0;
@@ -11,8 +12,8 @@ function state = init_ekf_kscale(cfg)
     state.k        = 1.0;
     state.P        = 0.20^2;
     state.Q        = cfg.q * state.P;
+    state.rate_max = cfg.rate_cap * sqrt(state.P);
     state.R_base   = cfg.R_base;
-    state.R_diseq  = cfg.R_disequilibrium_factor;
 
     state.lb_k     = 0.3;
     state.ub_k     = 3.0;
