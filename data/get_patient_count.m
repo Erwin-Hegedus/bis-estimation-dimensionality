@@ -1,8 +1,13 @@
 function N = get_patient_count(matfile)
-    S = load(matfile, 'patientDataFinal');
-    if istable(S.patientDataFinal)
-        N = height(S.patientDataFinal);
+    persistent T cached_file;
+    if isempty(T) || ~strcmp(cached_file, matfile)
+        S = load(matfile, 'patientDataFinal');
+        T = S.patientDataFinal;
+        cached_file = matfile;
+    end
+    if istable(T)
+        N = height(T);
     else
-        N = numel(S.patientDataFinal);
+        N = numel(T);
     end
 end

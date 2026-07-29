@@ -1,6 +1,11 @@
 function demo = get_patient_demo_from_mat(index, matfile)
-    S = load(matfile, 'patientDataFinal');
-    T = S.patientDataFinal;
+    persistent T cached_file;
+    if isempty(T) || ~strcmp(cached_file, matfile)
+        S = load(matfile, 'patientDataFinal');
+        T = S.patientDataFinal;
+        cached_file = matfile;
+    end
+
     demo = struct('Age', 50, 'Wt_kg', 70, 'Ht_cm', 170, 'Sex', 'M');
     
     if istable(T)
