@@ -9,7 +9,7 @@ function P = repro_paths()
 %   Fields:
 %     repo        repository root
 %     data_file   300-case VitalDB extract, tracked at the repository root
-%     cfg         configuration struct of the published run
+%     cfg         configuration of the published run, from default_cfg
 %     cohort      209 patient indices of the analysed cohort
 %     outdir      reproduce/output, created on first use
 
@@ -26,12 +26,8 @@ function P = repro_paths()
             'see reproduce/README.md.'], P.repo);
     end
 
-    cfg_file = fullfile(here, 'cfg_canonical.mat');
-    if ~exist(cfg_file, 'file')
-        error('repro:missingCfg', 'cfg_canonical.mat not found in %s.', here);
-    end
-    S = load(cfg_file, 'cfg');
-    P.cfg = S.cfg;
+    addpath(P.repo);
+    P.cfg = default_cfg();
 
     csv = fullfile(here, 'cohort_caseids.csv');
     if ~exist(csv, 'file')

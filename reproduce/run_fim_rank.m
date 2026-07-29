@@ -1,6 +1,7 @@
 %RUN_FIM_RANK  Effective rank of the FIM across the cohort, at the estimator's
-%   own threshold (ident_eigenvalue_ratio = 0.01). Spectrum is in raw parameter
-%   coordinates, so it is unit-dependent.
+%   own threshold (ident_eigenvalue_ratio = 0.01). The filter estimates
+%   log-parameters, so the spectrum is dimensionless and does not depend on the
+%   units the parameters are carried in.
 %
 %   Both accumulations are reported:
 %     FIM_cum    undiscounted sum over the whole case

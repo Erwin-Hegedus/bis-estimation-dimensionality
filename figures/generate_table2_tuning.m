@@ -23,7 +23,7 @@ function generate_table2_tuning(cfg, fig_dir)
         vec2str(sqrt(diag(s1.P))), vec2str(sqrt(diag(s2.P))), ...
         vec2str(sqrt(diag(s3.P))), vec2str(sqrt(diag(s4.P))));
     fprintf(fid, row, 'Rate limit / sample', ...
-        '0.05', vec2str(s2.rate_max), vec2str(s3.param_rate_max), ...
+        vec2str(s1.rate_max), vec2str(s2.rate_max), vec2str(s3.param_rate_max), ...
         vec2str(s4.param_rate_max));
     fprintf(fid, row, 'FIM projection', 'n/a (scalar)', 'Yes', 'Yes', 'Yes');
     fprintf(fid, row, 'FIM forgetting', '---', ...
@@ -34,12 +34,13 @@ function generate_table2_tuning(cfg, fig_dir)
     fprintf(fid, '\nThe 1D filter adapts a scalar, so subspace projection does not apply;\n');
     fprintf(fid, 'it guards on |H| > 1e-4 instead.\n');
     fprintf(fid, '\nShared parameters:\n');
-    fprintf(fid, '  R_base = %.0f\n', cfg.R_base);
-    fprintf(fid, '  R_disequilibrium_factor = %.0f\n', cfg.R_disequilibrium_factor);
+    fprintf(fid, '  R_base = %.0f  (R = Rmult * R_base; Rmult is the artifact\n', cfg.R_base);
+    fprintf(fid, '         gate''s 1 / 3 / 5 / 1000, the only adaptation of R)\n');
     fprintf(fid, '  ke0P = %.3f /min (Schnider, no covariates)\n', cfg.ke0P);
     fprintf(fid, '  ke0R = %.3f /min at the reference age of 40, then Minto''s\n', cfg.ke0R);
     fprintf(fid, '         -0.007 (age - 40) per patient\n');
     fprintf(fid, '  q = %.0e  (Q = q * P0 for every model)\n', cfg.q);
+    fprintf(fid, '  rate_cap = %.4g  (per-sample step limit = rate_cap * P0 sd, every model)\n', cfg.rate_cap);
     fprintf(fid, '  min_drug_effect = %.2f  (shared learning gate)\n', cfg.min_drug_effect);
     fprintf(fid, '  E0 = %.0f, BISmin = %.0f (population values, 0D model)\n', ...
         cfg.E0_fixed, cfg.BISmin_fixed);

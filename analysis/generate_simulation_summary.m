@@ -70,25 +70,16 @@ function summary = generate_simulation_summary(results, cfg)
         thresh, n_k_eq_2d, N_valid, 100*n_k_eq_2d/N_valid);
     fprintf('\n');
     
-    if mean(abs(diff_k_2d)) < 0.5 && mean(abs(diff_k_van)) < 1.5
-        fprintf('╔════════════════════════════════════════════════════════════════╗\n');
-        fprintf('║  CONCLUSION: PD parameters are NOT individually identifiable!  ║\n');
-        fprintf('║                                                                ║\n');
-        fprintf('║  Evidence:                                                     ║\n');
-        fprintf('║  - 1D, 2D, 3D, and 4D models achieve similar MAE               ║\n');
-        fprintf('║  - Splitting k into kP and kR provides NO significant gain     ║\n');
-        fprintf('║  - The BIS+TCI structure supports only ~1 effective DoF        ║\n');
-        fprintf('║  - Additional parameters do not improve prediction accuracy   ║\n');
-        fprintf('╚════════════════════════════════════════════════════════════════╝\n');
-    elseif mean(diff_k_2d) > 0.5
-        fprintf('╔════════════════════════════════════════════════════════════════╗\n');
-        fprintf('║  FINDING: 2D model (kP, kR) provides improvement over 1D       ║\n');
-        fprintf('║                                                                ║\n');
-        fprintf('║  Mean improvement: %.2f BIS units                              ║\n', mean(diff_k_2d));
-        fprintf('║  This suggests propofol/remi sensitivity may be independently  ║\n');
-        fprintf('║  identifiable under certain excitation conditions.             ║\n');
-        fprintf('╚════════════════════════════════════════════════════════════════╝\n');
-    end
+    % Report what was measured. A fixed conclusion here drifts out of date the
+    % moment the tuning changes: at unmatched rate limits the 4D was the worst
+    % adaptive model, and at matched ones it beats the 1D and the 2D.
+    [~, p_k_2d]  = ttest(mae_k, mae_2d);
+    [~, p_k_van] = ttest(mae_k, mae_van);
+    fprintf('1D -> 2D : %+.2f BIS (paired t p = %.3g), 2D better in %d/%d cases\n', ...
+        mean(diff_k_2d), p_k_2d, sum(diff_k_2d > 0), N_valid);
+    fprintf('1D -> 4D : %+.2f BIS (paired t p = %.3g), 4D better in %d/%d cases\n', ...
+        mean(diff_k_van), p_k_van, sum(diff_k_van > 0), N_valid);
+    fprintf('positive favours the higher-dimensional model.\n');
     
     summary.mae_pop = mean(mae_pop);
     summary.mae_k = mean(mae_k);

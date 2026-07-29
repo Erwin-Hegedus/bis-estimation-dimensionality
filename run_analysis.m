@@ -9,60 +9,13 @@ addpath(fullfile(fileparts(mfilename('fullpath')), 'figures'));
 addpath(fullfile(fileparts(mfilename('fullpath')), 'diagnostic_plots'));
 
 clearvars -except -regexp ^OCTAVE_VERSION$; clc; close all;
-cfg = struct();
+cfg = default_cfg();
 DATA_FILE = 'patientDataFinal_auto.mat';
 if ~exist(DATA_FILE, 'file'); error('Data file %s not found.', DATA_FILE); end
 
-% ================= CORE CONFIG =====================
-cfg.ke0P = 0.456;  % Schnider population (DO NOT inflate)
-cfg.ke0R = 0.595;  % Minto, at the reference age of 40
-cfg.q = 1e-4;      % process noise scale; every estimator uses Q = cfg.q * P0
-cfg.BISmin_fixed = 30;
-cfg.E0_fixed = 93;
-cfg.bis_delay = 25;  % samples at 1 Hz, BIS monitor smoothing lag
-
-% Gate settings
-cfg.gate = struct('window',60,'forget',0.98,'temperature',2.0,'min_weight',0.00);
-
-cfg.pop_virtual_sigma = [0.50, 0.60, 0.30, 0.30];
-cfg.decision_point = struct( ...
-    'evaluation_start',300,'evaluation_duration',300,'min_samples',100, ...
-    'improvement_threshold',1.0,'significance_level',0.05, ...
-    'effect_size_threshold',0.3,'consistency_threshold',3.0);
-
-cfg.R_population = diag([0.1^2, 0.15^2, 0.15^2, 0.08^2]);
-cfg.population_params_van = [3.5, 5.0, 2.8, 0.8];
-cfg.population_params_gre = [3.2, 4.5, 2.8, 0.9];
-
-% Physiological Bounds
-cfg.lb = [1.0,  2.0,  1.0,  0.3]; 
-cfg.ub = [12.0, 40.0, 6.0, 1.8];
-
-cfg.P_min = [0.01, 0.02, 0.005, 0.002];
-cfg.P_max = [4.0, 9.0, 1.5, 0.5];
-
-cfg.param_rate_max = [0.02, 0.05, 0.01, 0.005];
-
-cfg.fim_forgetting = 0.995;
-cfg.ident_eigenvalue_ratio = 0.01;  % FIM directions below this fraction of lambda_1 are projected out
-
-cfg.R_base = 400;
-cfg.R_disequilibrium_factor = 0;
-
-cfg.pk.prop = struct('V1',4.27,'V2',18.9,'V3',238,'CL',1.89,'Q2',1.29,'Q3',0.836,'input_conc',20,'ke0',cfg.ke0P);
-cfg.pk.remi = struct('V1',5.1,'V2',9.82,'V3',5.42,'CL',2.6,'Q2',2.05,'Q3',0.076,'input_conc',0.02,'ke0',cfg.ke0R);
-
-cfg.target_band = [40,60];
-cfg.min_drug_effect = 0.15;  % minimum CeP/C50P + 1000*CeR/C50R for a sample to inform
-cfg.online = struct('initialization_samples',10);
-cfg.artifact = struct('bis_min',0,'bis_max',100,'bis_jump_thresh',25,'bis_rate_thresh',15);
-cfg.R_floor = 80;
-
-% ke0 Estimator Config
-cfg.ke0_estimator = struct('lambda', 0.1, 'Q_ke0', (0.002/60)^2, 'adapt_window_min', 15);
-
 fprintf('=== ONLINE BIS ANALYSIS V6.0 (Convergent Estimator) ===\n');
 fprintf('Process noise: Q = q * P0 for every model, q = %.0e\n', cfg.q);
+fprintf('Rate limit: cap = %.4g * P0 sd for every model\n', cfg.rate_cap);
 fprintf('Models: 0D (Pop), 1D (k_scale), 2D (kP,kR), 3D (LogLin), 4D (Vanluchene)\n');
 
 %% ======================= Main Processing Loop ===========================
@@ -309,7 +262,7 @@ plot_fim_diagnostics(results, 101);
 plot_kscale_comparison(results, 101);
 plot_loglin_analysis(results, 101);
 plot_2d_comparison(results, 101, cfg, results_dir);
-plot_population_stats_boxplot(results);
+plot_population_stats_boxplot(results, results_dir);
 %%
 plot_identifiability_comparison(results, results_dir);
 plot_1d_vs_2d(results, 105, results_dir);
