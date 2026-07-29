@@ -112,17 +112,33 @@ function stats_results = compute_statistical_tests(results)
         % Effect size (Cohen's d for paired samples)
         cohens_d = mean_diff / std(diff_ab);
         effect_interp = interpret_cohens_d(cohens_d);
-        
+
+        % The mean and the median can disagree in sign when a few cases
+        % dominate, so report how often each model wins.
+        n_b_better = sum(diff_ab > 0);
+        med_diff   = median(diff_ab);
+
         fprintf('%-20s %+10.2f %+5.2f,%+5.2f %10.4f %10.4f %10.2f %10s\n', ...
             label, mean_diff, ci_diff(1), ci_diff(2), p_wilcox, p_ttest, cohens_d, effect_interp);
-        
+
         stats_results.pairwise(i).comparison = label;
         stats_results.pairwise(i).mean_diff = mean_diff;
+        stats_results.pairwise(i).median_diff = med_diff;
         stats_results.pairwise(i).ci_diff = ci_diff;
         stats_results.pairwise(i).p_wilcoxon = p_wilcox;
         stats_results.pairwise(i).p_ttest = p_ttest;
         stats_results.pairwise(i).cohens_d = cohens_d;
         stats_results.pairwise(i).effect_size = effect_interp;
+        stats_results.pairwise(i).n_second_better = n_b_better;
+        stats_results.pairwise(i).n_pairs = numel(diff_ab);
+    end
+
+    fprintf('\n--- PER-PATIENT DIRECTION ---\n\n');
+    fprintf('%-20s %10s %10s %14s\n', 'Comparison', 'mean', 'median', 'second better');
+    for i = 1:n_comparisons
+        s = stats_results.pairwise(i);
+        fprintf('%-20s %+10.2f %+10.2f %8d/%-5d\n', s.comparison, ...
+            s.mean_diff, s.median_diff, s.n_second_better, s.n_pairs);
     end
     
     fprintf('\n');
