@@ -42,7 +42,7 @@ function generate_figure6_2d_drift(results, fig_dir)
         step = max(1, floor(n_pts / 200));
         idx_plot = 1:step:n_pts;
         
-        scatter(kP(idx_plot), kR(idx_plot), 20, (1:length(idx_plot))', ...
+        scatter(kP(idx_plot), kR(idx_plot), 6, (1:length(idx_plot))', ...
                 'filled', 'MarkerFaceAlpha', 0.6);
     end
     
@@ -50,16 +50,15 @@ function generate_figure6_2d_drift(results, fig_dir)
     plot([0.3 2.5], [0.3 2.5], 'k--', 'LineWidth', 2);
     
     % Add population reference
-    scatter(1, 1, 200, 'k', 'p', 'filled', 'DisplayName', 'Population');
+    scatter(1, 1, 60, 'k', 'p', 'filled', 'DisplayName', 'Population');
     
-    xlabel('k_P (Propofol potency scale)', 'FontSize', 12);
-    ylabel('k_R (Remifentanil potency scale)', 'FontSize', 12);
-    title('Figure 6: Correlated Parameter Drift in 2D Model', 'FontSize', 14, 'FontWeight', 'bold');
+    xlabel('k_P (propofol)');
+    ylabel('k_R (remifentanil)');
+    title('Correlated parameter drift, 2D model');
     
     colormap(jet);
     cb = colorbar;
     cb.Label.String = 'Time progression';
-    cb.Label.FontSize = 11;
     
     xlim([0.3 2.5]);
     ylim([0.3 2.5]);
@@ -67,9 +66,9 @@ function generate_figure6_2d_drift(results, fig_dir)
     grid on;
     
     % Add annotation
-    annotation('textbox', [0.15 0.72 0.25 0.1], ...
+    annotation('textbox', [0.16 0.70 0.42 0.12], ...
                'String', {'Parameters drift along', 'constant-potency ridge'}, ...
-               'BackgroundColor', 'w', 'EdgeColor', 'k', 'FontSize', 10);
-    
-    save_figure(fig, fig_dir, 'figure6_2d_drift');
+               'BackgroundColor', 'w', 'EdgeColor', 'k');
+
+    save_figure(fig, fig_dir, 'figure6_2d_drift', 'single', 3.4);
 end

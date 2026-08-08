@@ -20,46 +20,44 @@ function generate_figure5_monte_carlo(eq_info, cfg, fig_dir)
     
     % Panel (a): C50P vs C50R (Potency Plane)
     subplot(1, 2, 1);
-    scatter(theta_good(:,1), theta_good(:,2), 60, [0.3 0.5 0.8], 'filled', ...
+    scatter(theta_good(:,1), theta_good(:,2), 26, [0.3 0.5 0.8], 'filled', ...
             'MarkerFaceAlpha', 0.5, 'DisplayName', 'Equivalent sets');
     hold on;
-    scatter(theta_ref(1), theta_ref(2), 200, 'r', 'x', 'LineWidth', 3, ...
+    scatter(theta_ref(1), theta_ref(2), 90, 'r', 'x', 'LineWidth', 1.8, ...
             'DisplayName', 'Reference estimate');
     
     % Add bounds
     rectangle('Position', [cfg.lb(1), cfg.lb(2), cfg.ub(1)-cfg.lb(1), cfg.ub(2)-cfg.lb(2)], ...
               'EdgeColor', [0.5 0.5 0.5], 'LineStyle', '--', 'LineWidth', 1);
     
-    xlabel('C_{50P} (\mug/mL)', 'FontSize', 12);
-    ylabel('C_{50R} (ng/mL)', 'FontSize', 12);
-    title('(a) Potency Plane', 'FontSize', 13, 'FontWeight', 'bold');
-    legend('Location', 'best', 'FontSize', 10);
+    xlabel('C_{50P} (\mug/mL)');
+    ylabel('C_{50R} (ng/mL)');
+    title('(a) Potency plane');
+    % One legend for the figure: both panels show the same two things.
+    legend('Location', 'northwest', 'Box', 'off');
     grid on;
     xlim([cfg.lb(1)-0.5, cfg.ub(1)+0.5]);
     ylim([cfg.lb(2)-2, cfg.ub(2)+2]);
     
     % Panel (b): gamma vs beta (Shape Plane)
     subplot(1, 2, 2);
-    scatter(theta_good(:,3), theta_good(:,4), 60, [0.3 0.5 0.8], 'filled', ...
-            'MarkerFaceAlpha', 0.5, 'DisplayName', 'Equivalent sets');
+    scatter(theta_good(:,3), theta_good(:,4), 26, [0.3 0.5 0.8], 'filled', ...
+            'MarkerFaceAlpha', 0.5);
     hold on;
-    scatter(theta_ref(3), theta_ref(4), 200, 'r', 'x', 'LineWidth', 3, ...
-            'DisplayName', 'Reference estimate');
+    scatter(theta_ref(3), theta_ref(4), 90, 'r', 'x', 'LineWidth', 1.8);
     
     % Add bounds
     rectangle('Position', [cfg.lb(3), cfg.lb(4), cfg.ub(3)-cfg.lb(3), cfg.ub(4)-cfg.lb(4)], ...
               'EdgeColor', [0.5 0.5 0.5], 'LineStyle', '--', 'LineWidth', 1);
     
-    xlabel('\gamma (Hill coefficient)', 'FontSize', 12);
-    ylabel('\beta (Interaction parameter)', 'FontSize', 12);
-    title('(b) Shape Plane', 'FontSize', 13, 'FontWeight', 'bold');
-    legend('Location', 'best', 'FontSize', 10);
+    xlabel('\gamma (Hill coefficient)');
+    ylabel('\beta (interaction)');
+    title('(b) Shape plane');
     grid on;
     xlim([cfg.lb(3)-0.2, cfg.ub(3)+0.2]);
     ylim([cfg.lb(4)-0.1, cfg.ub(4)+0.1]);
     
-    sgtitle(sprintf('Figure 5: Monte Carlo Equivalence Analysis (N_{eq}=%d, MAE_{ref}=%.2f)', ...
-            eq_info.N_eq, eq_info.mae_ref), 'FontSize', 14, 'FontWeight', 'bold');
-    
-    save_figure(fig, fig_dir, 'figure5_monte_carlo');
+    % No sgtitle: N_eq and MAE_ref belong in the caption, and a two-line
+    % superscripted title collided with the panel titles below it.
+    save_figure(fig, fig_dir, 'figure5_monte_carlo', 'double', 2.6);
 end

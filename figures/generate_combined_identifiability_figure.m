@@ -51,14 +51,14 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
         plot(t_pat, fim_pat, 'r-', 'LineWidth', 1.5);
     end
 
-    yline(100, 'k--', 'LineWidth', 1.5);
+    yline(100, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
     set(gca, 'YScale', 'log');
     xlim([0 1]); ylim([1e0 1e9]);
-    xlabel('Normalized Time');
-    ylabel('Condition Number \kappa (log)');
-    title('(a) FIM Condition Number', 'FontSize', 12, 'FontWeight', 'bold');
-    legend({'Cohort IQR', 'Cohort Median', 'Representative Patient', ...
-        'Ill-cond. threshold'}, 'Location', 'SouthEast', 'FontSize', 8);
+    xlabel('Normalized time');
+    ylabel('Condition number \kappa (log)');
+    title('(a) FIM condition number');
+    legend({'IQR', 'Median', 'Patient 101'}, ...
+        'Location', 'SouthEast', 'Box', 'on', 'Color', 'w', 'NumColumns', 1);
     grid on;
 
     % =====================================================================
@@ -79,10 +79,14 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
                      'DisplayName', param_names{pp}); 
             hold on;
         end
-        title('(b) 4D Parameter Variance', 'FontSize', 12, 'FontWeight', 'bold');
+        title('(b) 4D parameter variance');
         xlabel('Time (min)');
         ylabel('Variance \sigma^2 (log)');
-        legend('Location', 'NorthEast', 'FontSize', 8);
+        % A decade of headroom so the legend row clears the traces. The beta
+        % variance is nearly flat across the top of the panel, so every in-axes
+        % legend position landed on a curve.
+        yl = ylim; ylim([yl(1) yl(2)*20]);
+        legend('Location', 'North', 'Box', 'off', 'NumColumns', 2);
         grid on; xlim([0 max(t_min)]);
     else
         text(0.5,0.5,'No Variance Data');
@@ -120,11 +124,11 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
 
     plot(k_range, mae_1d, 'b-', 'LineWidth', 2); hold on;
     [min_err, min_idx] = min(mae_1d);
-    plot(k_range(min_idx), min_err, 'rx', 'MarkerSize', 10, 'LineWidth', 2);
+    plot(k_range(min_idx), min_err, 'rx', 'MarkerSize', 9, 'LineWidth', 1.6);
 
-    xlabel('Parameter k (1D Model)');
+    xlabel('Parameter k (1D model)');
     ylabel('MAE (BIS)');
-    title('(c) 1D error landscape', 'FontSize', 12, 'FontWeight', 'bold');
+    title('(c) 1D error landscape');
     grid on; axis tight;
 
     % =====================================================================
@@ -152,18 +156,22 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     % Sets within 1 BIS of the best fit: the practically indistinguishable region
     min_val_2d = min(mae_2d(:));
     [r_min, c_min] = find(mae_2d < min_val_2d + 1.0);
-    plot(kp_range(c_min), kr_range(r_min), 'w.', 'MarkerSize', 2, 'DisplayName', 'within 1 BIS');
+    plot(kp_range(c_min), kr_range(r_min), 'w.', 'MarkerSize', 2, ...
+         'DisplayName', 'within 1 BIS');
 
     xlabel('Parameter k_P');
     ylabel('Parameter k_R');
-    title('(d) 2D error landscape', 'FontSize', 12, 'FontWeight', 'bold');
-    axis square;
-    legend('Location','NorthEast','FontSize',8);
+    title('(d) 2D error landscape');
+    % No axis square: it shrank the axes away from the colorbar and forced the
+    % tick labels to tilt. The tile is already close to square.
+    legend('Location', 'NorthEast', 'Box', 'off');
 
     % --- SAVE ---
+    % No bare apply_figure_style(fig) here: it sets the 'styled' guard, which
+    % made the sized call below a silent no-op and shipped this figure at the
+    % fallback geometry with (a) and (b) overprinting each other.
     if ~exist(fig_dir, 'dir'), mkdir(fig_dir); end
-    apply_figure_style(fig);
+    export_figure_png(fig, fullfile(fig_dir, 'figure7_combined_identifiability.png'), 'double', 4.0);
     savefig(fig, fullfile(fig_dir, 'figure7_combined_identifiability.fig'));
-    export_figure_png(fig, fullfile(fig_dir, 'figure7_combined_identifiability.png'));
     fprintf('Saved: figure7_combined_identifiability.png\n');
 end

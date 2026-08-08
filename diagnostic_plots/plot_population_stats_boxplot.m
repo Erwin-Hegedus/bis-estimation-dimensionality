@@ -13,7 +13,7 @@ function plot_population_stats_boxplot(results, fig_dir)
         end
     end
     
-    param_names = {'C50 Prop (\mug/ml)', 'C50 Remi (ng/ml)', 'Gamma', 'Synergy'};
+    param_names = {'C_{50P} (\mug/mL)', 'C_{50R} (ng/mL)', '\gamma', '\beta / \alpha'};
     
     fig = figure('Name', 'Population PD Parameter Distribution (V6.0)', 'Color', 'w', 'Position', [100 100 1000 600]);
 
@@ -25,10 +25,10 @@ function plot_population_stats_boxplot(results, fig_dir)
                   repmat({'Greco'}, size(final_params_gre, 1), 1)];
 
         boxplot(data_col, groups, 'Widths', 0.5);
-        title(param_names{p}, 'FontWeight', 'bold');
+        title(param_names{p});
         grid on;
     end
 
-    export_figure_png(fig, fullfile(fig_dir, 'figure_population_boxplot.png'));
+    export_figure_png(fig, fullfile(fig_dir, 'figure_population_boxplot.png'), 'single', 3.7);
     fprintf('  Saved: figure_population_boxplot.png\n');
 end

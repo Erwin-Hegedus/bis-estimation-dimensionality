@@ -55,31 +55,39 @@ function generate_figure2_mae_boxplots(results, fig_dir)
     hold on;
     
     % Add mean markers
-    means = [mean(mae_pop), mean(mae_k), mean(mae_2d), mean(mae_ll), mean(mae_van), mean(mae_gre)];
-    plot(1:6, means, 'o', 'MarkerSize', 6, 'MarkerFaceColor', [0.3 0.3 0.3], ...
+    groups_cell = {mae_pop, mae_k, mae_2d, mae_ll, mae_van, mae_gre};
+    means = cellfun(@mean, groups_cell);
+    plot(1:6, means, 'o', 'MarkerSize', 4, 'MarkerFaceColor', [0.3 0.3 0.3], ...
          'MarkerEdgeColor', 'none');
-    
-    % Add mean labels
+
+    % Mean labels in a clear row along the bottom, one under each box. Placed
+    % near the mean they sat on the median line; placed above the whisker they
+    % sat on the outlier crosses. Below every box there is nothing to collide
+    % with, because the lowest whisker is at MAE ~2.5 and the axis starts at 0.
+    ymax = max(data) * 1.10;
     for ii = 1:6
-        text(ii, means(ii) + 0.7, sprintf('%.2f', means(ii)), ...
-             'HorizontalAlignment', 'center', 'FontSize', 9, 'Color', [0.3 0.3 0.3]);
+        text(ii, 0.02*ymax, sprintf('%.2f', means(ii)), ...
+             'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
+             'Color', [0.25 0.25 0.25]);
     end
-    
-    ylabel('Mean Absolute Error (BIS units)', 'FontSize', 11);
-    xlabel('Model Complexity', 'FontSize', 11);
-    title('Prediction Error Distribution', 'FontSize', 12, 'FontWeight', 'normal');
-    
-    % Fix x-axis labels with proper subscripts
+
+    ylabel('Mean absolute error (BIS units)');
+    xlabel('Model (estimated parameters)');
+    title('Prediction error distribution', 'FontWeight', 'normal');
+
+    % Short tick labels, full model names in the caption. The descriptive forms
+    % need 4.4 in of tick row and the column is 3.49 in. A cell of newline
+    % strings does not give two-line ticks either: MATLAB splits it into six
+    % separate labels, which silently relabelled the boxes.
     set(gca, 'XTick', 1:6);
-    set(gca, 'XTickLabel', {'0D (Pop)', '1D (k)', '2D (k_P, k_R)', '3D (LogLin)', '4D (Bouillon)', '4D (Greco)'});
+    set(gca, 'XTickLabel', {'0D', '1D', '2D', '3D', '4D-B', '4D-G'});
     set(gca, 'TickLabelInterpreter', 'tex');
-    
-    % Clean axis styling
-    set(gca, 'FontSize', 10, 'Box', 'on', 'LineWidth', 0.5);
-    ylim([0 max(data) * 1.1]);
-    
+
+    set(gca, 'Box', 'on');
+    ylim([0 ymax]);
+
     % Subtle reference line at 1D performance
     yline(mean(mae_k), '--', 'Color', [0.6 0.6 0.6], 'LineWidth', 1);
-    
-    save_figure(fig, fig_dir, 'figure2_mae_boxplots');
+
+    save_figure(fig, fig_dir, 'figure2_mae_boxplots', 'single', 3.0);
 end

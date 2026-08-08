@@ -61,9 +61,9 @@ function param_stats = plot_parameter_clustering_boxplots(results, fig_dir)
     boxplot(k_1d, 'Widths', 0.5);
     hold on;
     yline(1.0, 'k--', 'LineWidth', 1.2);
-    ylabel('Potency Scaling Factor', 'FontSize', 11);
-    set(gca, 'XTickLabel', {'k'}, 'FontSize', 10);
-    title('1D Model', 'FontSize', 12);
+    ylabel('Potency scaling factor');
+    set(gca, 'XTickLabel', {'k'});
+    title('1D model');
     ylim([y_min, y_max]);
     grid on;
     
@@ -75,13 +75,13 @@ function param_stats = plot_parameter_clustering_boxplots(results, fig_dir)
     yline(1.0, 'k--', 'LineWidth', 1.2);
     
     set(gca, 'XTick', [1, 2], 'XTickLabel', {'k_P', 'k_R'}, ...
-        'TickLabelInterpreter', 'tex', 'FontSize', 10);
-    
-    title('2D Model', 'FontSize', 12);
+        'TickLabelInterpreter', 'tex');
+
+    title('2D model');
     ylim([y_min, y_max]);
     grid on;
     
-    export_figure_png(gcf, fullfile(fig_dir, 'figure_param_boxplots_1d2d.png'));
+    export_figure_png(gcf, fullfile(fig_dir, 'figure_param_boxplots_1d2d.png'), 'single', 2.6);
     savefig(gcf, fullfile(fig_dir, 'figure_param_boxplots_1d2d.fig'));
     
     %% ==================== FIGURE 2: 3D MODEL (separate) ====================
@@ -91,13 +91,13 @@ function param_stats = plot_parameter_clustering_boxplots(results, fig_dir)
     boxplot(data_3d, 'Widths', 0.5);
     
     set(gca, 'XTick', [1, 2, 3], 'XTickLabel', {'a_0', 'a_P', 'a_R'}, ...
-        'TickLabelInterpreter', 'tex', 'FontSize', 10);
-    
-    ylabel('Parameter Value', 'FontSize', 11);
-    title('3D Log-Linear Model', 'FontSize', 12);
+        'TickLabelInterpreter', 'tex');
+
+    ylabel('Parameter value');
+    title('3D log-linear model');
     grid on;
     
-    export_figure_png(gcf, fullfile(fig_dir, 'figure_param_boxplots_3d.png'));
+    export_figure_png(gcf, fullfile(fig_dir, 'figure_param_boxplots_3d.png'), 'single', 2.6);
     savefig(gcf, fullfile(fig_dir, 'figure_param_boxplots_3d.fig'));
     
     %% ==================== CONSOLE SUMMARY ====================

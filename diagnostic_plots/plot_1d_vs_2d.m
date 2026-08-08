@@ -32,25 +32,25 @@ function plot_1d_vs_2d(results, patient_id, fig_dir)
     hold on;
     plot(t, pred_1d, 'c-', 'LineWidth', 2, 'DisplayName', '1D (k)');
     plot(t, pred_2d, '-', 'Color', [0.85 0.33 0.1], 'LineWidth', 2, 'DisplayName', '2D (k_P, k_R)');
-    ylabel('BIS', 'FontSize', 12);
-    xlabel('Time (min)', 'FontSize', 12);
-    title(sprintf('Case %d: 1D vs 2D BIS Prediction', patient_id), 'FontSize', 14, 'FontWeight', 'bold');
-    legend('Location', 'best', 'FontSize', 10);
+    ylabel('BIS');
+    xlabel('Time (min)');
+    title('(a) BIS prediction');
+    legend('Location', 'north', 'Orientation', 'horizontal', 'Box', 'off');
     grid on;
-    ylim([0 100]);
+    ylim([0 108]);
     
     % === Panel 2: Effect-site Concentrations ===
     subplot(3, 2, 3);
     yyaxis left;
     plot(t, CeP, 'b-', 'LineWidth', 1.5);
-    ylabel('Ce_P (\mug/ml)', 'FontSize', 11);
+    ylabel('C_{eP} (\mug/mL)');
     ylim([0 max(CeP)*1.1]);
     yyaxis right;
     plot(t, CeR*1000, 'r-', 'LineWidth', 1.5);
-    ylabel('Ce_R (ng/ml)', 'FontSize', 11);
+    ylabel('C_{eR} (ng/mL)');
     ylim([0 max(CeR*1000)*1.1]);
-    xlabel('Time (min)', 'FontSize', 11);
-    title('Effect-site Concentrations', 'FontSize', 12, 'FontWeight', 'bold');
+    xlabel('Time (min)');
+    title('(b) Effect-site conc.');
     grid on;
     
     % === Panel 3: 1D Parameter Evolution ===
@@ -58,9 +58,9 @@ function plot_1d_vs_2d(results, patient_id, fig_dir)
     plot(t, k_1d, 'c-', 'LineWidth', 2);
     hold on;
     yline(1.0, 'k--', 'LineWidth', 1);
-    ylabel('k (potency scale)', 'FontSize', 11);
-    xlabel('Time (min)', 'FontSize', 11);
-    title('1D Parameter: k', 'FontSize', 12, 'FontWeight', 'bold');
+    ylabel('k');
+    xlabel('Time (min)');
+    title('(c) 1D parameter k');
     grid on;
     ylim([0.4 2.5]);
     
@@ -70,10 +70,10 @@ function plot_1d_vs_2d(results, patient_id, fig_dir)
     hold on;
     plot(t, kR_2d, 'r-', 'LineWidth', 2, 'DisplayName', 'k_R');
     yline(1.0, 'k--', 'LineWidth', 1);
-    ylabel('Potency Scale', 'FontSize', 11);
-    xlabel('Time (min)', 'FontSize', 11);
-    title('2D Parameters: k_P, k_R', 'FontSize', 12, 'FontWeight', 'bold');
-    legend('Location', 'best');
+    ylabel('Potency scale');
+    xlabel('Time (min)');
+    title('(d) 2D parameters');
+    legend('Location', 'northeast', 'Box', 'off', 'NumColumns', 2);
     grid on;
     ylim([0.4 2.5]);
     
@@ -83,26 +83,25 @@ function plot_1d_vs_2d(results, patient_id, fig_dir)
     kP_v = kP_2d(valid_idx);
     kR_v = kR_2d(valid_idx);
     t_v = t(valid_idx);
-    scatter(kP_v, kR_v, 20, t_v, 'filled');
+    scatter(kP_v, kR_v, 5, t_v, 'filled');
     colormap(gca, jet);
     cb = colorbar;
     cb.Label.String = 'Time (min)';
     hold on;
-    plot(kP_v(1), kR_v(1), 'go', 'MarkerSize', 12, 'LineWidth', 2, 'DisplayName', 'Start');
-    plot(kP_v(end), kR_v(end), 'rs', 'MarkerSize', 12, 'LineWidth', 2, 'DisplayName', 'End');
+    plot(kP_v(1), kR_v(1), 'go', 'MarkerSize', 6, 'LineWidth', 1.4, 'DisplayName', 'Start');
+    plot(kP_v(end), kR_v(end), 'rs', 'MarkerSize', 6, 'LineWidth', 1.4, 'DisplayName', 'End');
     plot([0.4 2.5], [0.4 2.5], 'k--', 'LineWidth', 1);
-    xlabel('k_P', 'FontSize', 11);
-    ylabel('k_R', 'FontSize', 11);
-    title('2D Parameter Trajectory', 'FontSize', 12, 'FontWeight', 'bold');
-    legend('Location', 'best');
+    xlabel('k_P');
+    ylabel('k_R');
+    title('(e) 2D trajectory');
+    legend('Location', 'northwest', 'Box', 'off');
     grid on;
     axis equal;
     xlim([0.4 2.5]);
     ylim([0.4 2.5]);
     
-    sgtitle(sprintf('1D vs 2D Model Comparison - Patient %d', patient_id), ...
-        'FontSize', 14, 'FontWeight', 'bold');
-    
-    export_figure_png(gcf, fullfile(fig_dir, sprintf('1d_vs_2d_representative_%d.png', patient_id)));
+    sgtitle(sprintf('1D vs 2D, patient %d', patient_id));
+
+    export_figure_png(gcf, fullfile(fig_dir, sprintf('1d_vs_2d_representative_%d.png', patient_id)), 'double', 5.2);
     savefig(gcf, fullfile(fig_dir, sprintf('1d_vs_2d_representative_%d.fig', patient_id)));
 end
