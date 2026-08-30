@@ -4,6 +4,10 @@
 %   script used to report cannot be recovered from it: the accumulation runs at
 %   the theta(t) of each sample, so no single W inverts it.
 %
+%   Directions come from the undiscounted FIM_cum rather than the filter's
+%   forgetting-windowed FIM: the question here is what the whole record
+%   determined, not what was informed inside one window.
+%
 %   Set MODEL to 'van' (default) or 'gre' before running.
 
 addpath(genpath(fileparts(fileparts(mfilename('fullpath')))));
@@ -19,8 +23,8 @@ results = S.results; cfg = S.cfg; clear S;
 
 coh = P.cohort;
 switch MODEL
-    case 'van', fimField = 'FIM_final';     xField = 'Xhist_van';
-    case 'gre', fimField = 'FIM_final_gre'; xField = 'Xhist_gre';
+    case 'van', fimField = 'FIM_cum';     xField = 'Xhist_van';
+    case 'gre', fimField = 'FIM_cum_gre'; xField = 'Xhist_gre';
     otherwise,  error('MODEL must be ''van'' or ''gre''');
 end
 if ~isfield(results.raw, fimField)
@@ -43,8 +47,12 @@ for c = 1:numel(coh)
     A = (F+F')/2;
     [V,D] = eig(A); d = real(diag(D));
     [d,o] = sort(d,'descend'); V = real(V(:,o));
-    al = @(v) v * sign(v(find(abs(v)==max(abs(v)),1)));
-    V1(:,end+1) = al(V(:,1)); V2(:,end+1) = al(V(:,2)); L(:,end+1) = d;
+    % Sign-normalize each direction on a fixed coordinate, not on whichever
+    % component happens to be largest: a componentwise median over vectors
+    % normalized on different coordinates mixes populations and biases the
+    % entries toward zero.
+    al = @(v,j) v * (1 - 2*(v(j) < 0));
+    V1(:,end+1) = al(V(:,1),1); V2(:,end+1) = al(V(:,2),3); L(:,end+1) = d;
 end
 
 n = size(V1,2);
