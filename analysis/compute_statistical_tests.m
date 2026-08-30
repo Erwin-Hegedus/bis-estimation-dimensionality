@@ -11,14 +11,14 @@ function stats_results = compute_statistical_tests(results)
     mae_pop = results.metrics.pop.MAE(:);
     mae_1d = results.metrics.kscale.MAE(:);
     mae_2d = results.metrics.m2d.MAE(:);
-    mae_2d_fim = results.metrics.m2d_fim.MAE(:);
+    mae_kgamma = results.metrics.kgamma.MAE(:);
     mae_3d = results.metrics.loglin.MAE(:);
     mae_4d = results.metrics.van.MAE(:);
     mae_4d_gre = results.metrics.gre.MAE(:);
     
     % Valid cases (all models have data)
     valid = ~isnan(mae_pop) & ~isnan(mae_1d) & ~isnan(mae_2d) & ...
-            ~isnan(mae_2d_fim) & ~isnan(mae_3d) & ~isnan(mae_4d) & ~isnan(mae_4d_gre);
+            ~isnan(mae_kgamma) & ~isnan(mae_3d) & ~isnan(mae_4d) & ~isnan(mae_4d_gre);
     
     N = sum(valid);
     fprintf('Valid cases for analysis: N = %d\n\n', N);
@@ -31,22 +31,22 @@ function stats_results = compute_statistical_tests(results)
     mae_pop = mae_pop(valid);
     mae_1d = mae_1d(valid);
     mae_2d = mae_2d(valid);
-    mae_2d_fim = mae_2d_fim(valid);
+    mae_kgamma = mae_kgamma(valid);
     mae_3d = mae_3d(valid);
     mae_4d = mae_4d(valid);
     mae_4d_gre = mae_4d_gre(valid);
     
     % Store all MAEs in struct for easy access
     mae = struct('pop', mae_pop, 'm1d', mae_1d, 'm2d', mae_2d, ...
-                 'm2d_fim', mae_2d_fim, 'm3d', mae_3d, 'm4d', mae_4d, 'm4d_gre', mae_4d_gre);
+                 'kgamma2d', mae_kgamma, 'm3d', mae_3d, 'm4d', mae_4d, 'm4d_gre', mae_4d_gre);
     
     %% ==================== DESCRIPTIVE STATISTICS ====================
     fprintf('--- DESCRIPTIVE STATISTICS (MAE in BIS units) ---\n\n');
     fprintf('%-15s %8s %8s %8s %12s %15s\n', 'Model', 'Mean', 'SD', 'Median', 'IQR', '95% CI');
     fprintf('%s\n', repmat('-', 1, 70));
     
-    models = {'pop', 'm1d', 'm2d', 'm2d_fim', 'm3d', 'm4d', 'm4d_gre'};
-    model_names = {'Population', '1D (k)', '2D (kP,kR)', '2D-FIM', '3D (LogLin)', '4D (Bouillon)', '4D (Greco)'};
+    models = {'pop', 'm1d', 'm2d', 'kgamma2d', 'm3d', 'm4d', 'm4d_gre'};
+    model_names = {'Population', '1D (k)', '2D (kP,kR)', '2D (k,gamma)', '3D (LogLin)', '4D (Bouillon)', '4D (Greco)'};
     
     for i = 1:length(models)
         data = mae.(models{i});
@@ -70,12 +70,12 @@ function stats_results = compute_statistical_tests(results)
     % Define comparisons of interest
     comparisons = {
         'm1d', 'pop', '1D vs Pop';
-        'm1d', 'm2d_fim', '1D vs 2D';
+        'm1d', 'kgamma2d', '1D vs 2D';
         'm1d', 'm3d', '1D vs 3D';
         'm1d', 'm4d', '1D vs 4D (Bouillon)';
         'm1d', 'm4d_gre', '1D vs 4D (Greco)';
-        'm2d_fim', 'm3d', '2D vs 3D';
-        'm2d_fim', 'm4d', '2D vs 4D';
+        'kgamma2d', 'm3d', '2D vs 3D';
+        'kgamma2d', 'm4d', '2D vs 4D';
         'm3d', 'm4d', '3D vs 4D';
         'm4d', 'm4d_gre', 'Bouillon vs Greco'
     };
@@ -184,7 +184,7 @@ function stats_results = compute_statistical_tests(results)
     fprintf('%-20s %12s %12s %12s\n', 'Comparison', 'Mean Diff', 'TOST p', 'Equivalent?');
     fprintf('%s\n', repmat('-', 1, 60));
     
-    tost_comparisons = {'m2d_fim', 'm3d', 'm4d', 'm4d_gre'};
+    tost_comparisons = {'kgamma2d', 'm3d', 'm4d', 'm4d_gre'};
     tost_labels = {'1D vs 2D', '1D vs 3D', '1D vs 4D (Bou)', '1D vs 4D (Gre)'};
     
     for i = 1:length(tost_comparisons)
@@ -231,7 +231,7 @@ function stats_results = compute_statistical_tests(results)
     
     threshold = 0.5;  % Within 0.5 BIS = tie
     
-    models_compare = {'m1d', 'm2d_fim', 'm3d'};
+    models_compare = {'m1d', 'kgamma2d', 'm3d'};
     models_compare_names = {'1D', '2D', '3D'};
     
     fprintf('%-10s %8s %8s %8s %12s\n', 'Model', 'Wins', 'Losses', 'Ties', 'Win Rate');
@@ -262,7 +262,7 @@ function stats_results = compute_statistical_tests(results)
     fprintf('    Non-parametric alternative to repeated-measures ANOVA\n\n');
     
     % Combine all MAEs into matrix
-    mae_matrix = [mae_pop, mae_1d, mae_2d_fim, mae_3d, mae_4d];
+    mae_matrix = [mae_pop, mae_1d, mae_kgamma, mae_3d, mae_4d];
     
     try
         [p_friedman, tbl, stats_friedman] = friedman(mae_matrix, 1, 'off');

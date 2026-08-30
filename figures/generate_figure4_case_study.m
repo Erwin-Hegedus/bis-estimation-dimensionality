@@ -35,7 +35,7 @@ function generate_figure4_case_study(results, patient_id, cfg, fig_dir)
     hM = plot(t, r.bis(1:n_keep), 'k-', 'LineWidth', 1.0); hold on;
     h0 = plot(t, r.pred_pop(1:n_keep), 'Color', [0.5 0.5 0.5], 'LineStyle', ':');
     h1 = plot(t, r.pred_kscale(1:n_keep), 'c-');
-    h2 = plot(t, r.pred_2d(1:n_keep), 'b-');
+    h2 = plot(t, r.pred_kgamma(1:n_keep), 'b-');
 
     % Target band: drawn, not in the legend. Two dashed grey lines at 40 and 60
     % need one clause of caption, not a fifth of the legend row.
@@ -52,7 +52,7 @@ function generate_figure4_case_study(results, patient_id, cfg, fig_dir)
     % One legend for the figure, on its own strip above the layout, so it never
     % has to share a panel with the data.
     lg = legend([hM h0 h1 h2], ...
-                {'Measured BIS', '0D (population)', '1D (k)', '2D (k_P, k_R)'}, ...
+                {'Measured BIS', '0D (population)', '1D (k)', '2D (k, \gamma)'}, ...
                 'Orientation', 'horizontal', 'Box', 'off');
     lg.Layout.Tile = 'north';
 
@@ -86,21 +86,27 @@ function generate_figure4_case_study(results, patient_id, cfg, fig_dir)
     ylim([0.3 2.5]);
     grid on;
 
-    % Panel (d): 2D kP, kR comparison. ylim leaves a clear strip at the top for
-    % the legend row instead of letting it land on the trajectories.
+    % Panel (d): the two 2D coordinates against the 1D estimate. Potency and
+    % steepness are different quantities, so gamma carries its own axis.
     nexttile(tl);
-    plot(t, r.kP_trajectory(1:n_keep), 'b-', 'DisplayName', 'k_P');
+    yyaxis left;
+    plot(t, r.kg_k_trajectory(1:n_keep), 'b-', 'DisplayName', 'k (2D)');
     hold on;
-    plot(t, r.kR_trajectory(1:n_keep), 'r-', 'DisplayName', 'k_R');
     plot(t, r.k_trajectory(1:n_keep), 'c--', 'DisplayName', 'k (1D)');
     yline(1.0, 'k:', 'LineWidth', 1, 'HandleVisibility', 'off');
+    ylabel('Potency scale');
+    ylim([0.3 2.0]);
+
+    yyaxis right;
+    plot(t, r.kg_gamma_trajectory(1:n_keep), 'r-', 'DisplayName', '\gamma (2D)');
+    yline(cfg.population_params_van(3), 'r:', 'LineWidth', 1, 'HandleVisibility', 'off');
+    ylabel('Hill coefficient \gamma');
+    ylim([0.8 3.2]);
 
     xlim([0 tmax]);
-    ylabel('Potency scale');
     xlabel('Time (min)');
     title('(d) 2D vs 1D parameter comparison');
     legend('Location', 'best', 'Orientation', 'horizontal', 'Box', 'on');
-    ylim([0.3 2.0]);
     grid on;
 
     % Panel (e): Variance evolution
@@ -111,11 +117,11 @@ function generate_figure4_case_study(results, patient_id, cfg, fig_dir)
         semilogy(t_var, r.k_var(1:n_keep_var), 'c-', 'DisplayName', 'Var(k), 1D');
         hold on;
     end
-    if ~isempty(r.kP_var)
-        n_keep_2d = min(n_keep, length(r.kP_var));
+    if ~isempty(r.kg_k_var)
+        n_keep_2d = min(n_keep, length(r.kg_k_var));
         t_2d = (1:n_keep_2d)' / 60;
-        semilogy(t_2d, r.kP_var(1:n_keep_2d), 'b-', 'DisplayName', 'Var(k_P)');
-        semilogy(t_2d, r.kR_var(1:n_keep_2d), 'r-', 'DisplayName', 'Var(k_R)');
+        semilogy(t_2d, r.kg_k_var(1:n_keep_2d), 'b-', 'DisplayName', 'Var(log k), 2D');
+        semilogy(t_2d, r.kg_gamma_var(1:n_keep_2d), 'r-', 'DisplayName', 'Var(log \gamma), 2D');
     end
 
     xlim([0 tmax]);

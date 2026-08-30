@@ -14,8 +14,8 @@ fprintf('loading %s ...\n', canonical);
 S = load(canonical, 'results');
 results = S.results; clear S;
 
-models = {'pop','k1d','m2d','loglin3d','van4d','gre4d'};
-field  = {'pred_pop','pred_kscale','pred_2d','pred_loglin','pred_van','pred_gre'};
+models = {'pop','k1d','kgamma2d','loglin3d','van4d','gre4d'};
+field  = {'pred_pop','pred_kscale','pred_kgamma','pred_loglin','pred_van','pred_gre'};
 label  = {'population','1D','2D','3D','4D Bouillon','4D Greco'};
 
 N0 = 10;              % initialization samples skipped
