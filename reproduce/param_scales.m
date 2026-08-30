@@ -9,6 +9,7 @@ function S = param_scales()
 %   own initial covariance.
 
     S.sd_1d = 0.20;
+    S.sd_kgamma = [0.20; 0.40];
     S.sd_2d = [0.3; 0.3];
     S.sd_3d = [1.0; 0.5; 0.1];
     S.sd_4d = [1.0; 1.5; 0.4; 0.15];

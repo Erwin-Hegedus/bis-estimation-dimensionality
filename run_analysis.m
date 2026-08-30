@@ -16,7 +16,7 @@ if ~exist(DATA_FILE, 'file'); error('Data file %s not found.', DATA_FILE); end
 fprintf('=== ONLINE BIS ANALYSIS V6.0 (Convergent Estimator) ===\n');
 fprintf('Process noise: Q = q * P0 for every model, q = %.0e\n', cfg.q);
 fprintf('Rate limit: cap = %.4g * P0 sd for every model\n', cfg.rate_cap);
-fprintf('Models: 0D (Pop), 1D (k_scale), 2D (kP,kR), 3D (LogLin), 4D (Vanluchene)\n');
+fprintf('Models: 0D (Pop), 1D (k_scale), 2D (k,gamma), 2D (kP,kR), 3D (LogLin), 4D (Vanluchene)\n');
 
 %% ======================= Main Processing Loop ===========================
 results_dir = 'results';
@@ -77,10 +77,15 @@ for c = 1:numel(cohort)
         kR_fim_trajectory = nan(n,1);
         kP_var_trajectory = nan(n,1);
         kR_var_trajectory = nan(n,1);
+        pred_kgamma = nan(n,1);
+        kg_k_trajectory = nan(n,1);
+        kg_gamma_trajectory = nan(n,1);
+        kg_k_var_trajectory = nan(n,1);
+        kg_gamma_var_trajectory = nan(n,1);
 
         
         for k = 1:n
-            [pred_van(k), pred_gre(k), pred_kscale(k), pred_loglin(k), pred_2d_fim(k), processor] = process_sample( ...
+            [pred_van(k), pred_gre(k), pred_kscale(k), pred_loglin(k), pred_2d_fim(k), processor, pred_kgamma(k)] = process_sample( ...
                 processor, time(k), bis(k), prop_rate(k), remi_rate(k));
             
             if processor.initialized
@@ -101,6 +106,10 @@ for c = 1:numel(cohort)
                 kR_fim_trajectory(k) = processor.ekf_2d_fim.current_params(2);
                 kP_var_trajectory(k) = processor.ekf_2d_fim.P(1,1);
                 kR_var_trajectory(k) = processor.ekf_2d_fim.P(2,2);
+                kg_k_trajectory(k) = processor.ekf_kgamma.current_params(1);
+                kg_gamma_trajectory(k) = processor.ekf_kgamma.current_params(2);
+                kg_k_var_trajectory(k) = processor.ekf_kgamma.P(1,1);
+                kg_gamma_var_trajectory(k) = processor.ekf_kgamma.P(2,2);
                 Xhist_loglin(:,k) = processor.ekf_loglin.current_params;
             else
                 CeP_trajectory(k) = 0; CeR_trajectory(k) = 0;
@@ -146,13 +155,15 @@ for c = 1:numel(cohort)
             mae_p = mean(abs(pred_pop(valid_idx) - bis(valid_idx)), 'omitnan');
             mae_k = mean(abs(pred_kscale(valid_idx) - bis(valid_idx)), 'omitnan');
             mae_ll = mean(abs(pred_loglin(valid_idx) - bis(valid_idx)), 'omitnan');
-            mae_2d_fim = mean(abs(pred_2d_fim(valid_idx) - bis(valid_idx)), 'omitnan'); 
+            mae_2d_fim = mean(abs(pred_2d_fim(valid_idx) - bis(valid_idx)), 'omitnan');
+            mae_kg = mean(abs(pred_kgamma(valid_idx) - bis(valid_idx)), 'omitnan');
         else
             mae_v = NaN; mae_g = NaN; mae_p = NaN; mae_k = NaN; mae_ll = NaN; mae_2d_fim = NaN;
+            mae_kg = NaN;
         end
-        
-        fprintf('OK (Pop=%.2f | K1D=%.2f | 2D=%.2f | LL3D=%.2f | Van4D=%.2f | Gre4D=%.2f)\n', ...
-            mae_p, mae_k, mae_2d_fim, mae_ll, mae_v, mae_g);
+
+        fprintf('OK (Pop=%.2f | K1D=%.2f | KG2D=%.2f | 2D=%.2f | LL3D=%.2f | Van4D=%.2f | Gre4D=%.2f)\n', ...
+            mae_p, mae_k, mae_kg, mae_2d_fim, mae_ll, mae_v, mae_g);
         
         % Store demographics for Table 1
         results.demographics(i).Age = demo.Age;
@@ -198,6 +209,11 @@ for c = 1:numel(cohort)
         results.raw(i).kR_hist = kR_fim_trajectory(:);
         results.raw(i).kP_var  = kP_var_trajectory(:);
         results.raw(i).kR_var  = kR_var_trajectory(:);
+        results.raw(i).pred_kgamma = pred_kgamma(:);
+        results.raw(i).kg_k_trajectory = kg_k_trajectory(:);
+        results.raw(i).kg_gamma_trajectory = kg_gamma_trajectory(:);
+        results.raw(i).kg_k_var = kg_k_var_trajectory(:);
+        results.raw(i).kg_gamma_var = kg_gamma_var_trajectory(:);
 
 
         results.raw(i).k_hist = processor.ekf_k.k_hist;
@@ -214,6 +230,8 @@ for c = 1:numel(cohort)
                                        | abs(processor.ekf_2d_fim.current_params(:) - processor.ekf_2d_fim.ub(:)) < tol;
         results.raw(i).at_bound_1d     = abs(processor.ekf_k.k - processor.ekf_k.lb_k) < tol ...
                                        | abs(processor.ekf_k.k - processor.ekf_k.ub_k) < tol;
+        results.raw(i).at_bound_kgamma = abs(processor.ekf_kgamma.current_params(:) - processor.ekf_kgamma.lb(:)) < tol ...
+                                       | abs(processor.ekf_kgamma.current_params(:) - processor.ekf_kgamma.ub(:)) < tol;
         
         results.metrics.van.MAE(i,1) = mae_v;
         results.metrics.gre.MAE(i,1) = mae_g;
@@ -222,6 +240,7 @@ for c = 1:numel(cohort)
         results.metrics.loglin.MAE(i,1) = mae_ll;
         results.metrics.m2d.MAE(i,1) = mae_2d_fim;
         results.metrics.m2d_fim.MAE(i,1) = mae_2d_fim;
+        results.metrics.kgamma.MAE(i,1) = mae_kg;
         
         results.raw(i).pers_van = processor.personalization.van;
         results.raw(i).pers_gre = processor.personalization.gre;

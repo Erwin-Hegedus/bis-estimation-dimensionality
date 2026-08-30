@@ -20,7 +20,7 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N, cohort)
     cfg.q = q;
     cohort = cohort(:).';
 
-    names = {'pop','k1d','m2d','loglin3d','van4d','const'};
+    names = {'pop','k1d','kgamma2d','m2d','loglin3d','van4d','const'};
     for f = names
         mae_in.(f{1})  = nan(N,1);
         mae_out.(f{1}) = nan(N,1);
@@ -52,9 +52,9 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N, cohort)
             error('holdout:shortSplit', 'cohort case %d leaves only %d held-out samples.', pid, n - T_split);
         end
 
-        p_pop = nan(n,1); p_1d = nan(n,1); p_2d = nan(n,1); p_3d = nan(n,1); p_4d = nan(n,1);
+        p_pop = nan(n,1); p_1d = nan(n,1); p_kg = nan(n,1); p_2d = nan(n,1); p_3d = nan(n,1); p_4d = nan(n,1);
         for k = 1:T_split
-            [p_4d(k), ~, p_1d(k), p_3d(k), p_2d(k), processor] = process_sample( ...
+            [p_4d(k), ~, p_1d(k), p_3d(k), p_2d(k), processor, p_kg(k)] = process_sample( ...
                 processor, time(k), bis(k), prop_rate(k), remi_rate(k));
             if processor.initialized
                 CeP = processor.effect_site_P.Ce_delayed_output;
@@ -63,7 +63,7 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N, cohort)
             end
         end
         for k = (T_split+1):n
-            [p_4d(k), ~, p_1d(k), p_3d(k), p_2d(k), p_pop(k), processor] = ...
+            [p_4d(k), ~, p_1d(k), p_3d(k), p_2d(k), p_pop(k), processor, p_kg(k)] = ...
                 predict_sample(processor, time(k), prop_rate(k), remi_rate(k));
         end
 
@@ -74,11 +74,13 @@ function out = run_cohort_holdout(cfg, q, DATA_FILE, N, cohort)
         mae_out.const(i)    = mean(abs(b_const      - bis(vi_out)), 'omitnan');
         mae_in.pop(i)       = mean(abs(p_pop(vi_in)  - bis(vi_in)),  'omitnan');
         mae_in.k1d(i)       = mean(abs(p_1d(vi_in)   - bis(vi_in)),  'omitnan');
+        mae_in.kgamma2d(i)  = mean(abs(p_kg(vi_in)   - bis(vi_in)),  'omitnan');
         mae_in.m2d(i)       = mean(abs(p_2d(vi_in)   - bis(vi_in)),  'omitnan');
         mae_in.loglin3d(i)  = mean(abs(p_3d(vi_in)   - bis(vi_in)),  'omitnan');
         mae_in.van4d(i)     = mean(abs(p_4d(vi_in)   - bis(vi_in)),  'omitnan');
         mae_out.pop(i)      = mean(abs(p_pop(vi_out) - bis(vi_out)), 'omitnan');
         mae_out.k1d(i)      = mean(abs(p_1d(vi_out)  - bis(vi_out)), 'omitnan');
+        mae_out.kgamma2d(i) = mean(abs(p_kg(vi_out)  - bis(vi_out)), 'omitnan');
         mae_out.m2d(i)      = mean(abs(p_2d(vi_out)  - bis(vi_out)), 'omitnan');
         mae_out.loglin3d(i) = mean(abs(p_3d(vi_out)  - bis(vi_out)), 'omitnan');
         mae_out.van4d(i)    = mean(abs(p_4d(vi_out)  - bis(vi_out)), 'omitnan');

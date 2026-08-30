@@ -4,4 +4,5 @@ function vec = build_vec_from_results(results)
     vec.MAE_kscale = results.metrics.kscale.MAE(:);
     vec.MAE_loglin = results.metrics.loglin.MAE(:);
     vec.MAE_2d = results.metrics.m2d.MAE(:);
+    vec.MAE_kgamma = results.metrics.kgamma.MAE(:);
 end

@@ -1,4 +1,4 @@
-function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] = process_sample(processor, time_k, bis_k, prop_rate_k, remi_rate_k)
+function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor, pred_kgamma] = process_sample(processor, time_k, bis_k, prop_rate_k, remi_rate_k)
     processor.sample_count = processor.sample_count + 1;
     processor.current_time = time_k;
     cfg = processor.cfg;
@@ -13,6 +13,7 @@ function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] 
             pred_van = y_eff; 
             pred_gre = y_eff;
             pred_kscale = y_eff;
+            pred_kgamma = y_eff;
             pred_loglin = y_eff;
                 pred_2d_fim = y_eff;
             return;
@@ -53,6 +54,11 @@ function [pred_van, pred_gre, pred_kscale, pred_loglin, pred_2d_fim, processor] 
     % 8. UPDATE 1-PARAMETER k_scale MODEL
     [pred_kscale, processor.ekf_k] = update_ekf_kscale( ...
         processor.ekf_k, y_eff, CeP, CeR, E0, BISmin, cfg, ...
+        learning_enabled, Rmult);
+
+    % 8b. UPDATE FIM-INFORMED 2-PARAMETER (shared k, gamma) MODEL
+    [pred_kgamma, processor.ekf_kgamma] = update_ekf_kgamma( ...
+        processor.ekf_kgamma, y_eff, CeP, CeR, E0, BISmin, cfg, ...
         learning_enabled, Rmult);
 
     % 9. UPDATE 3-PARAMETER LOG-LINEAR MODEL

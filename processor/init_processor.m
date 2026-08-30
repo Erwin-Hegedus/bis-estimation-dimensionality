@@ -8,6 +8,7 @@ function processor = init_processor(cfg, start_time, pk_prop, pk_remi, ~)
     processor.art = init_artifact_gate(cfg);
     processor.fast_init = struct('bis_buffer',[],'samples_needed',10,'ready',false);
     processor.ekf_k = init_ekf_kscale(cfg);
+    processor.ekf_kgamma = init_ekf_kgamma(cfg);
     processor.ekf_loglin = init_ekf_loglin3d(cfg);
     processor.ekf_2d_fim = init_ekf_2d(cfg);
     
