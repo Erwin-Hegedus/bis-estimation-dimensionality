@@ -1,7 +1,7 @@
 function generate_combined_identifiability_figure(results, cfg, fig_dir, target_pid)
 % FIGURE 7: COMPREHENSIVE IDENTIFIABILITY ANALYSIS
 % Merges FIM diagnostics and Error Landscape proof into one 2x2 figure.
-% Target: Patient 101 (Representative Case)
+% Target: the patient passed in target_pid (Representative Case)
 
     fprintf('Generating Figure 7: Combined Identifiability Analysis...\n');
     
@@ -53,11 +53,14 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
 
     yline(100, 'k--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
     set(gca, 'YScale', 'log');
-    xlim([0 1]); ylim([1e0 1e9]);
+    % Upper limit follows the data: both the cohort ribbon and the highlighted
+    % case run past 1e11, and a fixed 1e9 ceiling clipped the red trace.
+    y_top = 10^ceil(log10(max([fim_q75(:); r.FIM_cond_hist(:)], [], 'omitnan')));
+    xlim([0 1]); ylim([1e0 max(1e9, y_top)]);
     xlabel('Normalized time');
     ylabel('Condition number \kappa (log)');
     title('(a) FIM condition number');
-    legend({'IQR', 'Median', 'Patient 101'}, ...
+    legend({'IQR', 'Median', sprintf('Patient %d', target_pid)}, ...
         'Location', 'SouthEast', 'Box', 'on', 'Color', 'w', 'NumColumns', 1);
     grid on;
 
@@ -132,23 +135,32 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     grid on; axis tight;
 
     % =====================================================================
-    % PANEL D: 2D FLAT VALLEY PROOF
+    % PANEL D: 2D (k, gamma) LANDSCAPE
     % =====================================================================
     subplot(2, 2, 4);
-    
-    kp_range = linspace(0.4, 2.8, 50);
-    kr_range = linspace(0.4, 2.8, 50);
-    [KP, KR] = meshgrid(kp_range, kr_range);
-    mae_2d = zeros(size(KP));
 
-    for i = 1:size(KP,1)
-        for j = 1:size(KP,2)
-            p = predict_bis_2d_model(KP(i,j), KR(i,j), CeP_t, CeR_t, E0_t, cfg.BISmin_fixed, cfg);
-            mae_2d(i,j) = mean(abs(p - bis_t));
+    % k spans the same range as panel (c) so the two landscapes can be read
+    % against each other; this case's minimum lies above the estimator's
+    % k bound and would sit off the edge of a bounds-width sweep.
+    k_range_2d  = linspace(0.2, 6.0, 50);
+    ga_range_2d = linspace(1.0, 6.0, 50);
+    [KK, GG] = meshgrid(k_range_2d, ga_range_2d);
+    mae_2d = zeros(size(KK));
+
+    % predict_bis_kgamma_model is scalar-valued, so the trajectory is walked
+    % sample by sample rather than passed in as a vector.
+    p = zeros(n_t, 1);
+    for i = 1:size(KK,1)
+        for j = 1:size(KK,2)
+            for s = 1:n_t
+                p(s) = predict_bis_kgamma_model(KK(i,j), GG(i,j), ...
+                    CeP_t(s), CeR_t(s), E0_t(s), cfg.BISmin_fixed, cfg);
+            end
+            mae_2d(i,j) = mean(abs(p - bis_t(:)));
         end
     end
 
-    contourf(KP, KR, mae_2d, 20, 'LineStyle', 'none', 'HandleVisibility', 'off');
+    contourf(KK, GG, mae_2d, 20, 'LineStyle', 'none', 'HandleVisibility', 'off');
     colormap(gca, 'parula');
     c = colorbar; c.Label.String = 'MAE (BIS)';
     hold on;
@@ -156,11 +168,11 @@ function generate_combined_identifiability_figure(results, cfg, fig_dir, target_
     % Sets within 1 BIS of the best fit: the practically indistinguishable region
     min_val_2d = min(mae_2d(:));
     [r_min, c_min] = find(mae_2d < min_val_2d + 1.0);
-    plot(kp_range(c_min), kr_range(r_min), 'w.', 'MarkerSize', 2, ...
+    plot(k_range_2d(c_min), ga_range_2d(r_min), 'w.', 'MarkerSize', 2, ...
          'DisplayName', 'within 1 BIS');
 
-    xlabel('Parameter k_P');
-    ylabel('Parameter k_R');
+    xlabel('Parameter k');
+    ylabel('Hill coefficient \gamma');
     title('(d) 2D error landscape');
     % No axis square: it shrank the axes away from the colorbar and forced the
     % tick labels to tilt. The tile is already close to square.

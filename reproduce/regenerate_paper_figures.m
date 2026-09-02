@@ -31,7 +31,7 @@ clear D;
 generate_figure2_mae_boxplots(results, fig_dir);
 generate_figure4_case_study(results, 107, cfg, fig_dir);
 generate_figure5_monte_carlo(eq_info, cfg, fig_dir);
-generate_combined_identifiability_figure(results, cfg, fig_dir, 101);
+generate_combined_identifiability_figure(results, cfg, fig_dir, 105);
 
 plot_parameter_clustering_boxplots(results, fig_dir);
 plot_population_stats_boxplot(results, fig_dir);

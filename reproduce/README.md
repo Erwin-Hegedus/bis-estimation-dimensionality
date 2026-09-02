@@ -26,8 +26,12 @@ Results are written to `reproduce/output/`.
 | `run_allmodels_sweep.m` | all five models against `q`, in-sample | ~n_q x 15 min |
 | `run_holdout_sweep.m` | held-out split: adapt on the first half of each case, freeze, predict the second | ~n_q x 15 min |
 | `run_bismin_sweep.m` | held-out accuracy against the fixed lower asymptote `BISmin` | ~8 x 15 min |
+| `run_kgamma_experiment.m` | the 2D `(k, gamma)` model: in-sample and held-out accuracy, pairwise contrasts, parameter and bound diagnostics | ~n_q x 15 min |
+| `run_fim_directions.m` | per-patient cumulative-FIM eigenvalues, leading eigenvectors and effective rank | minutes |
+| `run_phase_split.m` | induction and maintenance accuracy, split at 10 minutes | ~15 min |
+| `c50_ratio_test/run_c50_variants.m` | held-out effect of freezing the potency ratio `C50R/C50P` at its population value | ~4 x 15 min |
 
-Each of the four is a driver over a cohort function of the same name prefix
+Each of the sweep drivers wraps a cohort function of the same name prefix
 (`run_cohort_van`, `run_cohort_allmodels`, `run_cohort_holdout`), which loop the
 209 cases and return per-patient metrics. The cohort functions take `cfg` and the
 process-noise scale as arguments and hold no state.

@@ -25,7 +25,7 @@ The script processes all patients in `patientDataFinal_auto.mat` and writes all 
 | Folder | Description |
 |---|---|
 | `core/` | BIS prediction math — Hill equation, Vanluchene/Greco models, C50 scaling |
-| `ekf/` | Extended Kalman Filter estimators — 1D (k-scale), 2D (kP/kR), 3D (log-linear), 4D (RLS) |
+| `ekf/` | Extended Kalman Filter estimators — 1D (k-scale), 2D (k, gamma), 3D (log-linear), 4D (RLS) |
 | `physiology/` | Pharmacokinetic state propagation, effect-site dynamics, E0/BISmin estimation |
 | `processor/` | Online orchestration — sample-by-sample processing, artifact gating, initialization |
 | `data/` | Data loading from .mat file, demographics, results struct construction |
@@ -40,7 +40,7 @@ Five model variants of increasing dimensionality are compared:
 
 - **0D** — Population (no personalization)
 - **1D** — Single k-scale EKF
-- **2D** — Separate propofol/remifentanil scaling (kP, kR) via EKF with FIM-based identifiability gating
+- **2D** — Shared potency scaling and Hill coefficient (k, gamma) via EKF with FIM-based identifiability gating
 - **3D** — Log-linear EKF
 - **4D** — Full Vanluchene/Greco parameter estimation
 
